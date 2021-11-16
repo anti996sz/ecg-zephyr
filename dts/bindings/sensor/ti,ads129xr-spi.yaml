@@ -1,0 +1,44 @@
+# Copyright (c) 2018 Analog Devices Inc.
+# Copyright (c) 2018 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+description: TI ads129xr ECG sensor, accessed through SPI bus
+
+compatible: "ti,ads129xr"
+
+include: spi-device.yaml
+
+properties:
+    start-gpios:
+      type: phandle-array
+      required: true
+      description: |
+        The Start signal defaults to active high as produced by the
+        sensor.  The property value should ensure the flags properly
+        describe the signal that is presented to the driver.
+
+    pwdn-gpios:
+      type: phandle-array
+      required: true
+      description: |
+        The PWDN signal defaults to active high as produced by the
+        sensor.  The property value should ensure the flags properly
+        describe the signal that is presented to the driver.
+
+    reset-gpios:
+      type: phandle-array
+      required: true
+      description: |
+        The RESET signal defaults to active high as produced by the
+        sensor.  The property value should ensure the flags properly
+        describe the signal that is presented to the driver.
+
+    drdy-gpios:
+      type: phandle-array
+      required: true
+      description: |
+        The DRDY signal defaults to active high as produced by the
+        sensor.  The property value should ensure the flags properly
+        describe the signal that is presented to the driver.
+
+on-bus: spi

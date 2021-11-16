@@ -1,0 +1,77 @@
+// Copyright (c) 2021 Nordic Semiconductor ASA
+// SPDX-License-Identifier: Apache-2.0
+
+/dts-v1/;
+#include <nordic/nrf5340_cpuapp_qkaa.dtsi>
+
+/ {
+	model = "yasun mbe18";
+	compatible = "yasun.net.cn,yasun-mbe18";
+
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,code-partition = &slot0_partition;
+	};
+};
+
+&flash0 {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x0 0x10000>;
+		};
+		slot0_partition: partition@10000 {
+			label = "image-0";
+			reg = <0x10000 0x40000>;
+		};
+		slot0_ns_partition: partition@50000 {
+			label = "image-0-nonsecure";
+			reg = <0x50000 0x30000>;
+		};
+		slot1_partition: partition@80000 {
+			label = "image-1";
+			reg = <0x80000 0x40000>;
+		};
+		slot1_ns_partition: partition@c0000 {
+			label = "image-1-nonsecure";
+			reg = <0xc0000 0x30000>;
+		};
+		scratch_partition: partition@f0000 {
+			label = "image-scratch";
+			reg = <0xf0000 0xa000>;
+		};
+		storage_partition: partition@fa000 {
+			label = "storage";
+			reg = <0xfa000 0x6000>;
+		};
+	};
+};
+
+&spi2 {
+
+	compatible = "nordic,nrf-spim";
+	status = "okay";
+
+	sck-pin = < 12 >;
+	miso-pin = < 14 >;
+	mosi-pin = < 18 >;
+	cs-gpios = < &gpio0 15 GPIO_ACTIVE_LOW >;
+
+	ads129xr0: ads129xr@0 {
+		compatible = "ti,ads129xr";
+		label = "ADS129xR";
+		reg = <0>;
+		status = "okay";
+		spi-max-frequency = <4000000>;
+
+		pwdn-gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
+		drdy-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+		start-gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;
+	};
+};

@@ -1,0 +1,13 @@
+# Copyright (c) 2021 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+identifier: yasun_mbe18
+name: yasun mbe18
+type: mcu
+arch: arm
+ram: 512
+flash: 1024
+toolchain:
+  - zephyr
+  - gnuarmemb
+  - xtools

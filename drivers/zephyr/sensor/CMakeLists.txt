@@ -1,0 +1,1 @@
+add_subdirectory_ifdef(CONFIG_ADS129XR ads129xr)

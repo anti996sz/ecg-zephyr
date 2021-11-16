@@ -1,0 +1,9 @@
+menuconfig ADS129XR
+	bool "ADS1294R/ADS1298R ECG sensor"
+	depends on SPI
+	help
+	  Enable driver for ADS129XR SPI-based ECG sensor.
+
+if ADS129XR
+
+endif # BME280

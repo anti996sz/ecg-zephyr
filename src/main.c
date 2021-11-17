@@ -13,14 +13,16 @@
 
 void main(void)
 {
-	struct sensor_value accel[3];
+	struct sensor_value value;
 	const struct device *dev = DEVICE_DT_GET_ANY(ads129xr);
-	sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, accel);
 
 	if (!device_is_ready(dev)) {
 		printk("Device %s is not ready\n", dev->name);
 		return;
 	}
+
+	sensor_channel_get(dev, SENSOR_CHAN_ALL, &value);
+	printk("current %d.%d\r\n", value.val1, value.val2);
 
 	printk("Hello World! %s\n", CONFIG_BOARD);
 	while (1) {

@@ -6,14 +6,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Compatible with "ti,ads129xr"
-
-#define DT_DRV_COMPAT ti_ads129xr
-
 #include <kernel.h>
+#include <device.h>
 #include <drivers/sensor.h>
 
 #include "ads129xr.h"
+
+// Compatible with "ti,ads129xr"
+
+#define DT_DRV_COMPAT ti_ads129xr
 
 struct ads129xr_config {
     const uint8_t start_pin;    //开始AD转换
@@ -23,21 +24,8 @@ struct ads129xr_config {
 };
 
 struct ads129xr_data {
-
+	uint32_t freq; /* initial clock frequency in Hz */
 };
-
-//创建管理数据和配置数据的宏
-#define ADS129XR_INST(n)											      \
-	struct ads129xr_data ads129xr_data_##n;								      \
-	const struct ads129xr_config ads129xr_cfg_##n = {							      \
-		.start_pin = DT_INST_GPIO_PIN(n, start_gpios),							      \
-        .ready_pin = DT_INST_GPIO_PIN(n, drdy_gpios),							      \
-        .reset_pin = DT_INST_GPIO_PIN(n, drdy_gpios),							      \
-        .pwd_pin = DT_INST_GPIO_PIN(n, drdy_gpios),							      \
-	};		
-
-//根据设备树对node进行初始化，会从设备树中读取硬件信息放在struct ads129x_config变量中
-DT_INST_FOREACH_STATUS_OKAY(ADS129XR_INST);
 
 int ads129xr_init(const struct device *dev)
 {
@@ -71,13 +59,40 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 	// }
 
 	return 0;
-}
+}；
 
 static const struct sensor_driver_api ads129xr_driver_api = {
 	// .trigger_set = ads129xr_trigger_set,
 	.channel_get = ads129xr_channel_get,
 };
 
+
+//创建管理数据和配置数据的宏
+#define ADS129XR_INST(inst)										\
+    static struct ads129xr_data ads129xr_data_##inst = {        \
+        /* initialize RAM values as needed, e.g.: */            \
+        .freq = DT_INST_PROP(inst, spi_max_frequency),          \
+    };                                                          \
+	const struct ads129xr_config ads129xr_cfg_##inst = {		\
+	    /* initialize ROM values as needed. */                  \
+		.start_pin = DT_INST_GPIO_PIN(n, start_gpios),			\
+        .ready_pin = DT_INST_GPIO_PIN(n, drdy_gpios),			\
+        .reset_pin = DT_INST_GPIO_PIN(n, drdy_gpios),			\
+        .pwd_pin = DT_INST_GPIO_PIN(n, drdy_gpios),				\
+    };                                                          \
+    DEVICE_DT_INST_DEFINE(inst,				\
+		ads129xr_init,						\
+		NULL,								\
+		&ads129xr_data_##inst,				\
+		&ads129xr_cfg_##inst,				\
+		POST_KERNEL,						\
+		CONFIG_SENSOR_INIT_PRIORITY,		\
+		&ads129xr_driver_api);
+
+
+//根据设备树对node进行初始化，会从设备树中读取硬件信息放在struct ads129x_config变量中
+DT_INST_FOREACH_STATUS_OKAY(ADS129XR_INST);
+
 //注册驱动
-DEVICE_AND_API_INIT(ads129xr_##n, DT_INST_LABEL(n), ads129xr_init, &ads129xr_data_##n, &ads129xr_cfg_##n, \
-			    POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY, &ads129xr_driver_api);
+// DEVICE_AND_API_INIT(ads129xr_##n, DT_INST_LABEL(n), ads129xr_init, &ads129xr_data_##n, &ads129xr_cfg_##n, \
+// 			    POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY, &ads129xr_driver_api);

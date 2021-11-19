@@ -8,6 +8,7 @@
 
 #include <kernel.h>
 #include <device.h>
+#include <drivers/gpio.h>
 #include <drivers/sensor.h>
 
 #include "ads129xr.h"
@@ -35,6 +36,7 @@ int ads129xr_init(const struct device *dev)
     // 驱动初始化状态设置
     // 驱动线程创建
     // 使能中断
+	return 0;
 };
 
 
@@ -59,7 +61,7 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 	// }
 
 	return 0;
-}；
+};
 
 static const struct sensor_driver_api ads129xr_driver_api = {
 	// .trigger_set = ads129xr_trigger_set,
@@ -75,10 +77,10 @@ static const struct sensor_driver_api ads129xr_driver_api = {
     };                                                          \
 	const struct ads129xr_config ads129xr_cfg_##inst = {		\
 	    /* initialize ROM values as needed. */                  \
-		.start_pin = DT_INST_GPIO_PIN(n, start_gpios),			\
-        .ready_pin = DT_INST_GPIO_PIN(n, drdy_gpios),			\
-        .reset_pin = DT_INST_GPIO_PIN(n, drdy_gpios),			\
-        .pwd_pin = DT_INST_GPIO_PIN(n, drdy_gpios),				\
+		.start_pin = DT_INST_GPIO_PIN(inst, start_gpios),			\
+        .ready_pin = DT_INST_GPIO_PIN(inst, drdy_gpios),			\
+        .reset_pin = DT_INST_GPIO_PIN(inst, drdy_gpios),			\
+        .pwd_pin = DT_INST_GPIO_PIN(inst, drdy_gpios),				\
     };                                                          \
     DEVICE_DT_INST_DEFINE(inst,				\
 		ads129xr_init,						\
@@ -92,7 +94,3 @@ static const struct sensor_driver_api ads129xr_driver_api = {
 
 //根据设备树对node进行初始化，会从设备树中读取硬件信息放在struct ads129x_config变量中
 DT_INST_FOREACH_STATUS_OKAY(ADS129XR_INST);
-
-//注册驱动
-// DEVICE_AND_API_INIT(ads129xr_##n, DT_INST_LABEL(n), ads129xr_init, &ads129xr_data_##n, &ads129xr_cfg_##n, \
-// 			    POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY, &ads129xr_driver_api);

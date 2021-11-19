@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
-# cmake_minimum_required(VERSION 3.20.0)
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.20.0)
 
 # list(APPEND DTS_ROOT ${CMAKE_SOURCE_DIR})
 

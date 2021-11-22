@@ -10,6 +10,7 @@
 #include <device.h>
 #include <drivers/gpio.h>
 #include <drivers/sensor.h>
+#include <sys/printk.h>
 
 #include "ads129xr.h"
 
@@ -47,6 +48,8 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 	// const struct ads129xr_config *drv_cfg = dev->config;
 	// int32_t acc;
 
+	printk("Hello World in ADS129XR Driver !!! %s\n", CONFIG_BOARD);
+
 	if (chan != SENSOR_CHAN_ALL) {
 		return -ENOTSUP;
 	}
@@ -59,6 +62,9 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 	// 	val->val2 *= 1000000;
 	// 	val->val2 /= (drv_cfg->ppr * drv_cfg->spp);
 	// }
+
+	val->val1 = 1;
+	val->val2 = 2;
 
 	return 0;
 };
@@ -92,5 +98,5 @@ static const struct sensor_driver_api ads129xr_driver_api = {
 		&ads129xr_driver_api);
 
 
-//根据设备树对node进行初始化，会从设备树中读取硬件信息放在struct ads129x_config变量中
+/* Call the device creation macro for each instance: */
 DT_INST_FOREACH_STATUS_OKAY(ADS129XR_INST);

@@ -15,19 +15,7 @@
 #include "ads129xr.h"
 
 // Compatible with "ti,ads129xr"
-
 #define DT_DRV_COMPAT ti_ads129xr
-
-struct ads129xr_config {
-    const uint8_t start_pin;    //开始AD转换，高电平有效
-	const uint8_t ready_pin;    //AD转换数据准备好，低电平有效
-    const uint8_t reset_pin;    //寄存器重置，低电平有效
-    const uint8_t pwd_pin;      //关闭电源，低电平有效
-};
-
-struct ads129xr_data {
-	uint32_t freq; /* initial clock frequency in Hz */
-};
 
 int ads129xr_init(const struct device *dev)
 {
@@ -37,6 +25,9 @@ int ads129xr_init(const struct device *dev)
     // 驱动初始化状态设置
     // 驱动线程创建
     // 使能中断
+	struct ads129xr_data *drv_data = dev->data;
+	drv_data->spi = device_get_binding(DT_INST_BUS_LABEL(0));
+
 	return 0;
 };
 

@@ -14,7 +14,7 @@
 void main(void)
 {
 	struct sensor_value value;
-	const struct device *dev = DEVICE_DT_GET_ANY(ads129xr);
+	const struct device *dev = DEVICE_DT_GET_ANY(ti_ads129xr);
 
 	if (!device_is_ready(dev)) {
 		printk("Device %s is not ready\n", dev->name);

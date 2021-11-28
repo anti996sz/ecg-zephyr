@@ -21,12 +21,15 @@ void main(void)
 		return;
 	}
 
+	sensor_channel_get(dev, SENSOR_CHAN_ALL, &value);
+	printk("ADS1298XR volt %d.%d\r\n", value.val1, value.val2);
+
 	printk("Hello World! %s\n", CONFIG_BOARD);
+	
 	while (1) {
-		printk("Hello World! %s\n", CONFIG_BOARD);
+		// printk("Hello World! %s\n", CONFIG_BOARD);
 		k_msleep(SLEEP_TIME_MS);
 
-		sensor_channel_get(dev, SENSOR_CHAN_ALL, &value);
-		printk("ADS1298XR volt %d.%d\r\n", value.val1, value.val2);
+
 	}
 }

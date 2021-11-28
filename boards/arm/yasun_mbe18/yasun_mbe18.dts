@@ -73,5 +73,6 @@
 		reset-gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
 		drdy-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
 		start-gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;
+		ledpw-gpios = <&gpio0 25 GPIO_ACTIVE_HIGH>;
 	};
 };

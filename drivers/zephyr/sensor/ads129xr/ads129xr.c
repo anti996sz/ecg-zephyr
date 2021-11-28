@@ -18,28 +18,30 @@
 // Compatible with "ti,ads129xr"
 #define DT_DRV_COMPAT ti_ads129xr
 
-int ads129xr_init(const struct device *dev)
-{
-    // GPIO的配置
-    // GPIO中断安装
-    // 旋转编码器GPIO初始化状态读取
-    // 驱动初始化状态设置
-    // 驱动线程创建
-    // 使能中断
-	struct ads129xr_data *drv_data = dev->data;
-	drv_data->spi = device_get_binding(DT_INST_BUS_LABEL(0));
+static const struct spi_config spi_cfg = {
+	// .operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA,
+	.operation = SPI_WORD_SET(8) | SPI_MODE_CPHA | SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB,
+	.frequency = 4000000,
+	.slave = 0,
+	.cs = SPI_CS_CONTROL_PTR_DT(DT_NODELABEL(ads129xr0), 2),
+};
 
-	static uint8_t tx_buffer[1] = {SDATAC};
-	static uint8_t rx_buffer[3];
+int ads129xr_spi_transceive(const struct device *dev, uint8_t buffer)
+{
+	struct ads129xr_data *drv_data = dev->data;
+	// drv_data->spi = device_get_binding(DT_INST_BUS_LABEL(0));
+
+	uint8_t tx_buffer[1] = {buffer};
+	uint8_t rx_buffer[1];
 
 	const struct spi_buf tx_buf = {
 		.buf = tx_buffer,
-		.len = sizeof(tx_buffer)
+		.len = 1
 	};
 
 	struct spi_buf rx_buf = {
 		.buf = rx_buffer,
-		.len = sizeof(rx_buffer),
+		.len = 1,
 	};
 
 	const struct spi_buf_set tx = {
@@ -52,21 +54,46 @@ int ads129xr_init(const struct device *dev)
 		.count = 1
 	};
 
-	static const struct spi_config spi_cfg = {
-		// .operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA,
-		.operation = SPI_WORD_SET(8) | SPI_MODE_CPHA | SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB,
-		.frequency = 4000000,
-		.slave = 0,
+	int err = spi_transceive(drv_data->spi, &spi_cfg, &tx, &rx);
+
+	if (err) {
+		printk("SPI error: %d\n", err);
+	} else {
+		printk("SPI sent/received: 0x%x/0x%x\n", tx_buffer[0], rx_buffer[0]);
 	};
 
-	int err = spi_transceive(drv_data->spi, &spi_cfg, &tx, &rx);
-	if (err) {
-		printk("SPI error in driver init(): %d\n", err);
-	} else {
-		printk("SPI sent/received 1-0: %x/%x\n", tx_buffer[0], rx_buffer[0]);
-		printk("SPI sent/received 1-1: %x/%x\n", tx_buffer[0], rx_buffer[1]);
-		printk("SPI sent/received 1-2: %x/%x\n", tx_buffer[0], rx_buffer[2]);
+	return err;
+};
+
+int ads129xr_init(const struct device *dev)
+{
+	const struct ads129xr_config *drv_cfg = dev->config;
+
+	int ret = gpio_pin_configure(drv_cfg->pwdwn_gpio_spec.port, drv_cfg->pwdwn_gpio_spec.pin, GPIO_OUTPUT_INACTIVE | drv_cfg->pwdwn_gpio_spec.dt_flags);
+	// ret = gpio_pin_set(drv_cfg->pwdwn_gpio_spec.port, drv_cfg->pwdwn_gpio_spec.pin, 1);
+
+	ret = gpio_pin_configure(drv_cfg->reset_gpio_spec.port, drv_cfg->reset_gpio_spec.pin, GPIO_OUTPUT_INACTIVE | drv_cfg->reset_gpio_spec.dt_flags);
+	// ret = gpio_pin_set(drv_cfg->reset_gpio_spec.port, drv_cfg->reset_gpio_spec.pin, 1);
+
+	ret = gpio_pin_configure(drv_cfg->ledpw_gpio_spec.port, drv_cfg->ledpw_gpio_spec.pin, GPIO_OUTPUT_ACTIVE | drv_cfg->ledpw_gpio_spec.dt_flags);
+	// ret = gpio_pin_set(drv_cfg->ledpw_gpio_spec.port, drv_cfg->ledpw_gpio_spec.pin, 1);
+
+	if (ret < 0) {
+		printk("ads1298 pwdwn gpio init error");
+		return -1;
 	}
+    // GPIO的配置
+    // GPIO中断安装
+    // 旋转编码器GPIO初始化状态读取
+    // 驱动初始化状态设置
+    // 驱动线程创建
+    // 使能中断
+
+	struct ads129xr_data *drv_data = dev->data;
+	drv_data->spi = device_get_binding(DT_INST_BUS_LABEL(0));
+
+	k_msleep(1000);	// 确保ADS129xR加电后到正常状态
+	ads129xr_spi_transceive(dev, SDATAC);
 
 	return 0;
 };
@@ -79,48 +106,10 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 	// const struct ads129xr_config *drv_cfg = dev->config;
 	// int32_t acc;
 
-	struct ads129xr_data *drv_data = dev->data;
-	drv_data->spi = device_get_binding(DT_INST_BUS_LABEL(0));
-
-	static uint8_t tx_buffer[4] = {SDATAC, RREG, ID, ID};
-	static uint8_t rx_buffer[4];
-
-	const struct spi_buf tx_buf = {
-		.buf = tx_buffer,
-		.len = sizeof(tx_buffer)
-	};
-
-	struct spi_buf rx_buf = {
-		.buf = rx_buffer,
-		.len = sizeof(rx_buffer),
-	};
-
-	const struct spi_buf_set tx = {
-		.buffers = &tx_buf,
-		.count = 1
-	};
-
-	const struct spi_buf_set rx = {
-		.buffers = &rx_buf,
-		.count = 1
-	};
-
-	static const struct spi_config spi_cfg = {
-		// .operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA,
-		.operation = SPI_WORD_SET(8) | SPI_MODE_CPHA | SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB,
-		.frequency = 4000000,
-		.slave = 0,
-	};
-
-	int err = spi_transceive(drv_data->spi, &spi_cfg, &tx, &rx);
-	if (err) {
-		printk("SPI error in channel get(): %d\n", err);
-	} else {
-		printk("SPI sent/received 2-0: %x/%x\n", tx_buffer[0], rx_buffer[0]);
-		printk("SPI sent/received 2-1: %x/%x\n", tx_buffer[1], rx_buffer[1]);
-		printk("SPI sent/received 2-2: %x/%x\n", tx_buffer[2], rx_buffer[2]);
-		printk("SPI sent/received 2-2: %x/%x\n", tx_buffer[3], rx_buffer[3]);
-	}
+	ads129xr_spi_transceive(dev, SDATAC);
+	ads129xr_spi_transceive(dev, RREG | ID);
+	ads129xr_spi_transceive(dev, 0x00);
+	ads129xr_spi_transceive(dev, 0x00);
 
 	printk("ADS129XR Driver !!! %s\n", CONFIG_BOARD);
 
@@ -157,10 +146,14 @@ static const struct sensor_driver_api ads129xr_driver_api = {
     };                                                          \
 	const struct ads129xr_config ads129xr_cfg_##inst = {		\
 	    /* initialize ROM values as needed. */                  \
-		.start_pin = DT_INST_GPIO_PIN(inst, start_gpios),			\
-        .ready_pin = DT_INST_GPIO_PIN(inst, drdy_gpios),			\
-        .reset_pin = DT_INST_GPIO_PIN(inst, drdy_gpios),			\
-        .pwd_pin = DT_INST_GPIO_PIN(inst, drdy_gpios),				\
+		.start_gpio_spec = GPIO_DT_SPEC_INST_GET(inst, start_gpios),	\
+		.ready_gpio_spec = GPIO_DT_SPEC_INST_GET(inst, drdy_gpios),	\
+		.reset_gpio_spec = GPIO_DT_SPEC_INST_GET(inst, reset_gpios),	\
+		.pwdwn_gpio_spec = GPIO_DT_SPEC_INST_GET(inst, pwdn_gpios),		\
+		.ledpw_gpio_spec = GPIO_DT_SPEC_INST_GET(inst, ledpw_gpios),	\
+		.spi_cfg = SPI_CONFIG_DT_INST(inst,			\
+					   ADS129XR_SPI_OPERATION,	\
+					   0),				\
     };                                                          \
     DEVICE_DT_INST_DEFINE(inst,				\
 		ads129xr_init,						\

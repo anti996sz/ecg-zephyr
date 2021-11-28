@@ -40,5 +40,13 @@ properties:
         The DRDY signal defaults to active high as produced by the
         sensor.  The property value should ensure the flags properly
         describe the signal that is presented to the driver.
+    
+    ledpw-gpios:
+      type: phandle-array
+      required: true
+      description: |
+        The DRDY signal defaults to active high as produced by the
+        sensor.  The property value should ensure the flags properly
+        describe the signal that is presented to the driver.
 
 on-bus: spi

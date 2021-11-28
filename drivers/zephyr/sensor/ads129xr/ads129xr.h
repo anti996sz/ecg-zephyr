@@ -1,6 +1,3 @@
-#include <device.h>
-#include <sys/util.h>
-
 /*
    Copyright (c) 2013-2019 by Adam Feuer <adam@adamfeuer.com>
    Copyright (c) 2012-2016 by Kendrick Shaw, Ace Medlock, and Eric Herman
@@ -26,6 +23,10 @@
 
  */
 
+#include <device.h>
+#include <sys/util.h>
+#include <drivers/gpio.h>
+
 #ifndef ADS129x_H
 #define ADS129x_H
 
@@ -33,11 +34,16 @@
 namespace ADS129x {
 #endif
 
+#define ADS129XR_SPI_OPERATION (SPI_WORD_SET(8) | SPI_TRANSFER_MSB |	\
+			      SPI_MODE_CPOL | SPI_MODE_CPHA)
+
 struct ads129xr_config {
-    const uint8_t start_pin;    //开始AD转换，高电平有效
-	const uint8_t ready_pin;    //AD转换数据准备好，低电平有效
-    const uint8_t reset_pin;    //寄存器重置，低电平有效
-    const uint8_t pwd_pin;      //关闭电源，低电平有效
+    struct gpio_dt_spec start_gpio_spec;    //开始AD转换，高电平有效
+	struct gpio_dt_spec ready_gpio_spec;    //AD转换数据准备好，低电平有效
+    struct gpio_dt_spec reset_gpio_spec;    //寄存器重置，低电平有效
+    struct gpio_dt_spec pwdwn_gpio_spec;    //关闭电源，低电平有效
+    struct gpio_dt_spec ledpw_gpio_spec;
+    struct spi_config spi_cfg;
 };
 
 struct ads129xr_data {

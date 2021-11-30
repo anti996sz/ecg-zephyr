@@ -19,29 +19,28 @@
 #define DT_DRV_COMPAT ti_ads129xr
 
 static const struct spi_config spi_cfg = {
-	// .operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA,
-	.operation = SPI_WORD_SET(8) | SPI_MODE_CPHA | SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB,
+	.operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPHA,
 	.frequency = 4000000,
 	.slave = 0,
 	.cs = SPI_CS_CONTROL_PTR_DT(DT_NODELABEL(ads129xr0), 2),
 };
 
-int ads129xr_spi_transceive(const struct device *dev, uint8_t buffer)
+int ads129xr_spi_transceive(const struct device *dev, uint8_t *tx_buffer)
 {
 	struct ads129xr_data *drv_data = dev->data;
 	// drv_data->spi = device_get_binding(DT_INST_BUS_LABEL(0));
 
-	uint8_t tx_buffer[1] = {buffer};
-	uint8_t rx_buffer[1];
+	// uint8_t tx_buffer[1] = {SDATAC};
+	uint8_t rx_buffer[4];
 
 	const struct spi_buf tx_buf = {
 		.buf = tx_buffer,
-		.len = 1
+		.len = sizeof(tx_buffer),
 	};
 
 	struct spi_buf rx_buf = {
 		.buf = rx_buffer,
-		.len = 1,
+		.len = sizeof(rx_buffer),
 	};
 
 	const struct spi_buf_set tx = {
@@ -60,6 +59,10 @@ int ads129xr_spi_transceive(const struct device *dev, uint8_t buffer)
 		printk("SPI error: %d\n", err);
 	} else {
 		printk("SPI sent/received: 0x%x/0x%x\n", tx_buffer[0], rx_buffer[0]);
+		printk("SPI sent/received: 0x%x/0x%x\n", tx_buffer[0], rx_buffer[1]);
+		printk("SPI sent/received: 0x%x/0x%x\n", tx_buffer[0], rx_buffer[2]);
+		printk("SPI sent/received: 0x%x/0x%x\n", tx_buffer[0], rx_buffer[3]);
+		printk("------------------------------\n");
 	};
 
 	return err;
@@ -69,11 +72,13 @@ int ads129xr_init(const struct device *dev)
 {
 	const struct ads129xr_config *drv_cfg = dev->config;
 
-	int ret = gpio_pin_configure(drv_cfg->pwdwn_gpio_spec.port, drv_cfg->pwdwn_gpio_spec.pin, GPIO_OUTPUT_INACTIVE | drv_cfg->pwdwn_gpio_spec.dt_flags);
+	int ret = gpio_pin_configure(drv_cfg->pwdwn_gpio_spec.port, drv_cfg->pwdwn_gpio_spec.pin, GPIO_OUTPUT_ACTIVE | drv_cfg->pwdwn_gpio_spec.dt_flags);
 	// ret = gpio_pin_set(drv_cfg->pwdwn_gpio_spec.port, drv_cfg->pwdwn_gpio_spec.pin, 1);
 
 	ret = gpio_pin_configure(drv_cfg->reset_gpio_spec.port, drv_cfg->reset_gpio_spec.pin, GPIO_OUTPUT_INACTIVE | drv_cfg->reset_gpio_spec.dt_flags);
 	// ret = gpio_pin_set(drv_cfg->reset_gpio_spec.port, drv_cfg->reset_gpio_spec.pin, 1);
+
+	k_msleep(1000);	// 确保ADS129xR加电后到正常状态 waite the ads1298 to normal after power on 
 
 	ret = gpio_pin_configure(drv_cfg->ledpw_gpio_spec.port, drv_cfg->ledpw_gpio_spec.pin, GPIO_OUTPUT_ACTIVE | drv_cfg->ledpw_gpio_spec.dt_flags);
 	// ret = gpio_pin_set(drv_cfg->ledpw_gpio_spec.port, drv_cfg->ledpw_gpio_spec.pin, 1);
@@ -92,8 +97,9 @@ int ads129xr_init(const struct device *dev)
 	struct ads129xr_data *drv_data = dev->data;
 	drv_data->spi = device_get_binding(DT_INST_BUS_LABEL(0));
 
-	k_msleep(1000);	// 确保ADS129xR加电后到正常状态
-	ads129xr_spi_transceive(dev, SDATAC);
+	uint8_t tx_buff[1] = {SDATAC};
+	ads129xr_spi_transceive(dev, tx_buff);
+	k_msleep(1000);
 
 	return 0;
 };
@@ -106,10 +112,18 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 	// const struct ads129xr_config *drv_cfg = dev->config;
 	// int32_t acc;
 
-	ads129xr_spi_transceive(dev, SDATAC);
-	ads129xr_spi_transceive(dev, RREG | ID);
-	ads129xr_spi_transceive(dev, 0x00);
-	ads129xr_spi_transceive(dev, 0x00);
+	uint8_t tx_buff_sdatac[1] = {SDATAC};
+	ads129xr_spi_transceive(dev, tx_buff_sdatac);
+
+	k_msleep(1000);
+
+	uint8_t tx_buff_rreg0[2] = {RREG, 0x00};
+	ads129xr_spi_transceive(dev, tx_buff_rreg0);
+
+	k_msleep(1000);
+
+	uint8_t tx_buff_rreg1[2] = {RREG, 0x01};
+	ads129xr_spi_transceive(dev, tx_buff_rreg1);
 
 	printk("ADS129XR Driver !!! %s\n", CONFIG_BOARD);
 

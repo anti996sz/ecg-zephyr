@@ -34,8 +34,7 @@
 namespace ADS129x {
 #endif
 
-#define ADS129XR_SPI_OPERATION (SPI_WORD_SET(8) | SPI_TRANSFER_MSB |	\
-			      SPI_MODE_CPOL | SPI_MODE_CPHA)
+#define ADS129XR_SPI_OPERATION (SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPHA)
 
 struct ads129xr_config {
     struct gpio_dt_spec start_gpio_spec;    //开始AD转换，高电平有效

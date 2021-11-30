@@ -69,7 +69,7 @@
 		status = "okay";
 		spi-max-frequency = <4000000>;
 
-		pwdn-gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
+		pwdn-gpios = <&gpio0 10 GPIO_ACTIVE_HIGH>;
 		reset-gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
 		drdy-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
 		start-gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;

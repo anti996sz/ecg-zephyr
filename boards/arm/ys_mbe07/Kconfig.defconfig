@@ -1,0 +1,12 @@
+# Copyright (c) 2021 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+if BOARD_YS_MBE07
+
+config BOARD
+	default "ys_mbe07"
+
+config BT_CTLR
+   default BT
+
+endif

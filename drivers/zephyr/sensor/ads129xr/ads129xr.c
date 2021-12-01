@@ -25,32 +25,52 @@ static const struct spi_config spi_cfg = {
 	.cs = SPI_CS_CONTROL_PTR_DT(DT_NODELABEL(ads129xr0), 2),
 };
 
-int ads129xr_spi_transceive(const struct device *dev, uint8_t *tx_buffer)
+/**
+ * @brief ads129x spi interface
+ * 
+ * @param dev spi device pointer
+ * @param opcode opcode command to read or write register, 
+ *        only one byte for system commands and data read commands, two bytes for register read/write command, 
+ *        the second byte is the number of registers to read or write.
+ * @param op_length length of opcode
+ * @param data data will write to register or will received
+ * @param data_length the length of data
+ * @return int return of spi_transceive()
+ */
+static int ads129xr_spi_transceive(const struct device *dev, 
+							uint8_t *opcode, 
+							size_t op_length,
+							uint8_t *data,
+							size_t data_length)
 {
 	struct ads129xr_data *drv_data = dev->data;
-	// drv_data->spi = device_get_binding(DT_INST_BUS_LABEL(0));
 
-	// uint8_t tx_buffer[1] = {SDATAC};
-	uint8_t rx_buffer[4];
+	printk("\nSPI sent:     ");
 
-	const struct spi_buf tx_buf = {
-		.buf = tx_buffer,
-		.len = sizeof(tx_buffer),
-	};
+	for (int i = 0; i < op_length; i++)
+	{
+		printk("0x%02x ", opcode[i]);
+	}
 
-	struct spi_buf rx_buf = {
-		.buf = rx_buffer,
-		.len = sizeof(rx_buffer),
+	const struct spi_buf buf[2] = {
+		{
+			.buf = opcode,
+			.len = op_length
+		},
+		{
+			.buf = data,
+			.len = data_length
+		}
 	};
 
 	const struct spi_buf_set tx = {
-		.buffers = &tx_buf,
-		.count = 1
+		.buffers = buf,
+		.count = opcode[0] >> 5 == 0x010 ? 2 : 1	// WREG: opcode[0] >> 5 == 0x010
 	};
 
 	const struct spi_buf_set rx = {
-		.buffers = &rx_buf,
-		.count = 1
+		.buffers = buf,
+		.count = opcode[0] >> 5 == 0x010 ? 0 : 2	// WREG: opcode[0] >> 5 == 0x010
 	};
 
 	int err = spi_transceive(drv_data->spi, &spi_cfg, &tx, &rx);
@@ -58,29 +78,38 @@ int ads129xr_spi_transceive(const struct device *dev, uint8_t *tx_buffer)
 	if (err) {
 		printk("SPI error: %d\n", err);
 	} else {
-		printk("SPI sent/received: 0x%x/0x%x\n", tx_buffer[0], rx_buffer[0]);
-		printk("SPI sent/received: 0x%x/0x%x\n", tx_buffer[0], rx_buffer[1]);
-		printk("SPI sent/received: 0x%x/0x%x\n", tx_buffer[0], rx_buffer[2]);
-		printk("SPI sent/received: 0x%x/0x%x\n", tx_buffer[0], rx_buffer[3]);
-		printk("------------------------------\n");
+
+		printk("\nSPI received: ");
+		
+		for (int i = 0; i < data_length; i++)
+		{
+			printk("0x%02x ", data[i]);
+		}
+
+		printk("\n------------------------------\n");
 	};
 
 	return err;
 };
 
-int ads129xr_init(const struct device *dev)
+static int ads129xr_init(const struct device *dev)
 {
 	const struct ads129xr_config *drv_cfg = dev->config;
 
-	int ret = gpio_pin_configure(drv_cfg->pwdwn_gpio_spec.port, drv_cfg->pwdwn_gpio_spec.pin, GPIO_OUTPUT_ACTIVE | drv_cfg->pwdwn_gpio_spec.dt_flags);
-	// ret = gpio_pin_set(drv_cfg->pwdwn_gpio_spec.port, drv_cfg->pwdwn_gpio_spec.pin, 1);
+	int ret = gpio_pin_configure(drv_cfg->pwdwn_gpio_spec.port, \
+								drv_cfg->pwdwn_gpio_spec.pin, \
+								GPIO_OUTPUT_INACTIVE | drv_cfg->pwdwn_gpio_spec.dt_flags);
 
-	ret = gpio_pin_configure(drv_cfg->reset_gpio_spec.port, drv_cfg->reset_gpio_spec.pin, GPIO_OUTPUT_INACTIVE | drv_cfg->reset_gpio_spec.dt_flags);
-	// ret = gpio_pin_set(drv_cfg->reset_gpio_spec.port, drv_cfg->reset_gpio_spec.pin, 1);
+	ret = gpio_pin_configure(drv_cfg->reset_gpio_spec.port, 
+							drv_cfg->reset_gpio_spec.pin, 
+							GPIO_OUTPUT_INACTIVE | drv_cfg->reset_gpio_spec.dt_flags);
+
 
 	k_msleep(1000);	// 确保ADS129xR加电后到正常状态 waite the ads1298 to normal after power on 
 
-	ret = gpio_pin_configure(drv_cfg->ledpw_gpio_spec.port, drv_cfg->ledpw_gpio_spec.pin, GPIO_OUTPUT_ACTIVE | drv_cfg->ledpw_gpio_spec.dt_flags);
+	ret = gpio_pin_configure(drv_cfg->ledpw_gpio_spec.port, 
+							drv_cfg->ledpw_gpio_spec.pin, 
+							GPIO_OUTPUT_ACTIVE | drv_cfg->ledpw_gpio_spec.dt_flags);
 	// ret = gpio_pin_set(drv_cfg->ledpw_gpio_spec.port, drv_cfg->ledpw_gpio_spec.pin, 1);
 
 	if (ret < 0) {
@@ -97,9 +126,9 @@ int ads129xr_init(const struct device *dev)
 	struct ads129xr_data *drv_data = dev->data;
 	drv_data->spi = device_get_binding(DT_INST_BUS_LABEL(0));
 
-	uint8_t tx_buff[1] = {SDATAC};
-	ads129xr_spi_transceive(dev, tx_buff);
-	k_msleep(1000);
+	uint8_t opcode[1] = {SDATAC}, data[0];
+	ads129xr_spi_transceive(dev, opcode, 1, data, 0);
+	k_msleep(1);
 
 	return 0;
 };
@@ -108,22 +137,14 @@ int ads129xr_init(const struct device *dev)
 static int ads129xr_channel_get(const struct device *dev, enum sensor_channel chan,
 			       struct sensor_value *val)
 {
-	// struct ads129xr_data *drv_data = dev->data;
-	// const struct ads129xr_config *drv_cfg = dev->config;
-	// int32_t acc;
+	uint8_t opcode[2] = {RREG, 0x00}, data[1];	
+	ads129xr_spi_transceive(dev, opcode, sizeof(opcode), data, sizeof(data));
 
-	uint8_t tx_buff_sdatac[1] = {SDATAC};
-	ads129xr_spi_transceive(dev, tx_buff_sdatac);
+	// k_msleep(1000);
 
-	k_msleep(1000);
-
-	uint8_t tx_buff_rreg0[2] = {RREG, 0x00};
-	ads129xr_spi_transceive(dev, tx_buff_rreg0);
-
-	k_msleep(1000);
-
-	uint8_t tx_buff_rreg1[2] = {RREG, 0x01};
-	ads129xr_spi_transceive(dev, tx_buff_rreg1);
+	// 测试读取前2个寄存器的结果
+	uint8_t opcode2[2] = {RREG, 0x01}, data2[2];	
+	ads129xr_spi_transceive(dev, opcode2, sizeof(opcode2), data2, sizeof(data2));
 
 	printk("ADS129XR Driver !!! %s\n", CONFIG_BOARD);
 

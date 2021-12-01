@@ -1,0 +1,6 @@
+# Copyright (c) 2021 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_YS_MBE07
+	bool "ys_mbe07"
+	depends on SOC_NRF52832_QFAA

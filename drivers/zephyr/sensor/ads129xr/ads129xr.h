@@ -23,9 +23,8 @@
 
  */
 
-#include <device.h>
 #include <sys/util.h>
-#include <drivers/gpio.h>
+#include <drivers/spi.h>
 
 #ifndef ADS129x_H
 #define ADS129x_H
@@ -42,7 +41,7 @@ struct ads129xr_config {
     struct gpio_dt_spec reset_gpio_spec;    //寄存器重置，低电平有效
     struct gpio_dt_spec pwdwn_gpio_spec;    //关闭电源，低电平有效
     struct gpio_dt_spec ledpw_gpio_spec;
-    struct spi_config spi_cfg;
+    const struct spi_config spi_cfg;
 };
 
 struct ads129xr_data {
@@ -143,31 +142,30 @@ enum CONFIG1_bits {
     // TODO: Fix for ADS1299
 
     // ADS1298
-    //CONFIG1_const = 0x00,
+    CONFIG1_const = 0x00,
 
     // ADS1299
-    CONFIG1_const = 0xE0,
+    // CONFIG1_const = 0xE0,
 
     // ADS1298
-    /*
-HIGH_RES_32k_SPS = HR,
-HIGH_RES_16k_SPS = (HR | DR0),
-HIGH_RES_8k_SPS = (HR | DR1),
-HIGH_RES_4k_SPS = (HR | DR1 | DR0),
-HIGH_RES_2k_SPS = (HR | DR2),
-HIGH_RES_1k_SPS = (HR | DR2 | DR0),
-HIGH_RES_500_SPS = (HR | DR2 | DR1),
-LOW_POWR_250_SPS = (DR2 | DR1)
-    */
+    HIGH_RES_32k_SPS = HR,
+    HIGH_RES_16k_SPS = (HR | DR0),
+    HIGH_RES_8k_SPS = (HR | DR1),
+    HIGH_RES_4k_SPS = (HR | DR1 | DR0),
+    HIGH_RES_2k_SPS = (HR | DR2),
+    HIGH_RES_1k_SPS = (HR | DR2 | DR0),
+    HIGH_RES_500_SPS = (HR | DR2 | DR1),
+    LOW_POWR_250_SPS = (DR2 | DR1)
+
 
     // ADS1299
-    HIGH_RES_16k_SPS = HR,
-    HIGH_RES_8k_SPS = (HR | DR0),
-    HIGH_RES_4k_SPS = (HR | DR1),
-    HIGH_RES_2k_SPS = (HR | DR1 | DR0),
-    HIGH_RES_1k_SPS = (HR | DR2),
-    HIGH_RES_500_SPS = (HR | DR2 | DR0),
-    HIGH_RES_250_SPS = (HR | DR2 | DR1),
+    // HIGH_RES_16k_SPS = HR,
+    // HIGH_RES_8k_SPS = (HR | DR0),
+    // HIGH_RES_4k_SPS = (HR | DR1),
+    // HIGH_RES_2k_SPS = (HR | DR1 | DR0),
+    // HIGH_RES_1k_SPS = (HR | DR2),
+    // HIGH_RES_500_SPS = (HR | DR2 | DR0),
+    // HIGH_RES_250_SPS = (HR | DR2 | DR1),
 
 };
 

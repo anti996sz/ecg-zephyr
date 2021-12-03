@@ -7,23 +7,13 @@
  */
 
 #include <kernel.h>
-#include <device.h>
-#include <drivers/gpio.h>
-#include <drivers/spi.h>
-#include <drivers/sensor.h>
 #include <sys/printk.h>
+#include <drivers/sensor.h>
 
 #include "ads129xr.h"
 
 // Compatible with "ti,ads129xr"
 #define DT_DRV_COMPAT ti_ads129xr
-
-static const struct spi_config spi_cfg = {
-	.operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPHA,
-	.frequency = 4000000,
-	.slave = 0,
-	.cs = SPI_CS_CONTROL_PTR_DT(DT_NODELABEL(ads129xr0), 2),
-};
 
 /**
  * @brief ads129x spi interface
@@ -44,13 +34,22 @@ static int ads129xr_spi_transceive(const struct device *dev,
 							size_t data_length)
 {
 	struct ads129xr_data *drv_data = dev->data;
+	const struct ads129xr_config *drv_cfg = dev->config;
 
-	printk("\nSPI sent:     ");
-
+	// If WREG sent, opcode[0] >> 5 == 0x02 must be 1
+	bool isWREG = (opcode[0] >> 5 == 0x02);
+	bool isRREG = (opcode[0] >> 5 == 0x01);
+	bool isReadData = (opcode[0] == RDATA) || (opcode[0] == RDATAC);
+	
+	printk("\n------------------------------");
+	printk("\nDevice Name:  %s", dev->name);
+	printk("\nSPI sent:     0x");
 	for (int i = 0; i < op_length; i++)
 	{
-		printk("0x%02x ", opcode[i]);
+		printk("%02x ", opcode[i]);
 	}
+
+	isWREG ? printk("%02x", data[0]) : "";
 
 	const struct spi_buf buf[2] = {
 		{
@@ -65,28 +64,35 @@ static int ads129xr_spi_transceive(const struct device *dev,
 
 	const struct spi_buf_set tx = {
 		.buffers = buf,
-		.count = opcode[0] >> 5 == 0x010 ? 2 : 1	// WREG: opcode[0] >> 5 == 0x010
+		.count = isWREG ? 2 : 1
 	};
 
 	const struct spi_buf_set rx = {
 		.buffers = buf,
-		.count = opcode[0] >> 5 == 0x010 ? 0 : 2	// WREG: opcode[0] >> 5 == 0x010
+		.count = isWREG ? 0 : 2
 	};
 
-	int err = spi_transceive(drv_data->spi, &spi_cfg, &tx, &rx);
+	// spi_transceive() return:
+	// frames – Positive number of frames received in slave mode.
+	// 0 – If successful in master mode.
+	// -errno – Negative errno code on failure.
+	int err = spi_transceive(drv_data->spi, &drv_cfg->spi_cfg, &tx, &rx);
 
-	if (err) {
-		printk("SPI error: %d\n", err);
+	if (err == 0) {
+
+		if(isRREG || isReadData) // if read register then print the data received
+		{
+			printk("\nSPI received: 0x");
+			for (int i = 0; i < data_length; i++)
+			{
+				printk("%02x ", data[i]);
+			}
+			printk("\n");
+		}
+		
 	} else {
 
-		printk("\nSPI received: ");
-		
-		for (int i = 0; i < data_length; i++)
-		{
-			printk("0x%02x ", data[i]);
-		}
-
-		printk("\n------------------------------\n");
+		printk("\nSPI error: %d\n", err);
 	};
 
 	return err;
@@ -128,7 +134,18 @@ static int ads129xr_init(const struct device *dev)
 
 	uint8_t opcode[1] = {SDATAC}, data[0];
 	ads129xr_spi_transceive(dev, opcode, 1, data, 0);
-	k_msleep(1);
+
+	k_msleep(5000);
+
+	// 设置内部时钟输出给级联模式中的第二片芯片
+	// printk("\nEnabel the 1st ads129xr clock output:");
+	uint8_t opcode_wreg[2] = {WREG | CONFIG1, 0x00};
+	uint8_t wreg_data[1] = {LOW_POWR_250_SPS | CLK_EN};
+	ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
+
+	// 测试读取前2个寄存器的结果
+	uint8_t opcode2[2] = {RREG, 0x01}, data2[2];	
+	ads129xr_spi_transceive(dev, opcode2, sizeof(opcode2), data2, sizeof(data2));
 
 	return 0;
 };
@@ -137,16 +154,10 @@ static int ads129xr_init(const struct device *dev)
 static int ads129xr_channel_get(const struct device *dev, enum sensor_channel chan,
 			       struct sensor_value *val)
 {
-	uint8_t opcode[2] = {RREG, 0x00}, data[1];	
-	ads129xr_spi_transceive(dev, opcode, sizeof(opcode), data, sizeof(data));
-
-	// k_msleep(1000);
 
 	// 测试读取前2个寄存器的结果
 	uint8_t opcode2[2] = {RREG, 0x01}, data2[2];	
 	ads129xr_spi_transceive(dev, opcode2, sizeof(opcode2), data2, sizeof(data2));
-
-	printk("ADS129XR Driver !!! %s\n", CONFIG_BOARD);
 
 	if (chan != SENSOR_CHAN_ALL) {
 		return -ENOTSUP;

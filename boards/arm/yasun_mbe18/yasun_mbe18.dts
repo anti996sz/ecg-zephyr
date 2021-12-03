@@ -60,19 +60,33 @@
 	sck-pin = < 12 >;
 	miso-pin = < 14 >;
 	mosi-pin = < 18 >;
-	cs-gpios = < &gpio0 15 GPIO_ACTIVE_LOW >;
+	cs-gpios = < &gpio0 9 GPIO_ACTIVE_LOW >, < &gpio0 15 GPIO_ACTIVE_LOW >;
 
 	ads129xr0: ads129xr@0 {
 		compatible = "ti,ads129xr";
-		label = "ADS129xR";
+		label = "ADS129xR0";
 		reg = <0>;
 		status = "okay";
 		spi-max-frequency = <4000000>;
 
-		pwdn-gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
-		reset-gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
-		drdy-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
-		start-gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;
-		ledpw-gpios = <&gpio0 25 GPIO_ACTIVE_HIGH>;
+		pwdn-gpios = < &gpio0 10 GPIO_ACTIVE_LOW >;
+		reset-gpios = < &gpio0 11 GPIO_ACTIVE_LOW >;
+		drdy-gpios = < &gpio0 13 GPIO_ACTIVE_LOW >;
+		start-gpios = < &gpio0 17 GPIO_ACTIVE_HIGH >;
+		ledpw-gpios = < &gpio0 27 GPIO_ACTIVE_HIGH >;
+	};
+
+	ads129xr1: ads129xr@1 {
+		compatible = "ti,ads129xr";
+		label = "ADS129xR1";
+		reg = <1>;
+		status = "okay";
+		spi-max-frequency = <4000000>;
+
+		pwdn-gpios = < &gpio0 10 GPIO_ACTIVE_LOW >;
+		reset-gpios = < &gpio0 11 GPIO_ACTIVE_LOW >;
+		drdy-gpios = < &gpio0 13 GPIO_ACTIVE_LOW >;
+		start-gpios = < &gpio0 17 GPIO_ACTIVE_HIGH >;
+		ledpw-gpios = < &gpio0 25 GPIO_ACTIVE_HIGH >;
 	};
 };

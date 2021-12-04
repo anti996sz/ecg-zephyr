@@ -132,20 +132,38 @@ static int ads129xr_init(const struct device *dev)
 	struct ads129xr_data *drv_data = dev->data;
 	drv_data->spi = device_get_binding(DT_INST_BUS_LABEL(0));
 
+	// 停止缺省的连续读数模式
 	uint8_t opcode[1] = {SDATAC}, data[0];
 	ads129xr_spi_transceive(dev, opcode, 1, data, 0);
 
-	k_msleep(5000);
+	k_msleep(1);
 
 	// 设置内部时钟输出给级联模式中的第二片芯片
-	// printk("\nEnabel the 1st ads129xr clock output:");
 	uint8_t opcode_wreg[2] = {WREG | CONFIG1, 0x00};
 	uint8_t wreg_data[1] = {LOW_POWR_250_SPS | CLK_EN};
 	ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
 
+	// 使用内部参考 Enable internal reference
+	opcode_wreg[0] = WREG | CONFIG3;
+	wreg_data[0] = CONFIG3_const | PD_REFBUF; //0xc0;
+	ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
+
+	// 设置发送测试信号
+	opcode_wreg[0] = WREG | CONFIG2;
+	wreg_data[0] = CONFIG2_const | INT_TEST; //0x10;
+	ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
+
+	// 设置通道输入测试信号
+	opcode_wreg[0] = WREG | CHnSET;
+	opcode_wreg[1] = 0x07;
+	wreg_data[0] = CHnSET_const | TEST_SIGNAL; //0x05;
+	ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
+
+	// k_msleep(1000);
+
 	// 测试读取前2个寄存器的结果
-	uint8_t opcode2[2] = {RREG, 0x01}, data2[2];	
-	ads129xr_spi_transceive(dev, opcode2, sizeof(opcode2), data2, sizeof(data2));
+	// uint8_t opcode2[2] = {RREG, 0x01}, data2[2];	
+	// ads129xr_spi_transceive(dev, opcode2, sizeof(opcode2), data2, sizeof(data2));
 
 	return 0;
 };

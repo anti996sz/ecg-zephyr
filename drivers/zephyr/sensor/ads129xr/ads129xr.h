@@ -177,10 +177,10 @@ enum CONFIG2_bits {
     TEST_FREQ0 = 0x01,
 
     // ADS1298
-    //CONFIG2_const = 0x00,
+    CONFIG2_const = 0x00,
 
     // ADS1299
-    CONFIG2_const = 0xC0,
+    // CONFIG2_const = 0xC0,
 
     INT_TEST_4HZ = INT_TEST,
     INT_TEST_8HZ = (INT_TEST | TEST_FREQ0),
@@ -197,10 +197,10 @@ enum CONFIG3_bits {
     RLD_STAT = 0x01,
 
     // ADS1298
-    //CONFIG3_const = 0x40
+    CONFIG3_const = 0x40
 
     // ADS1299
-    CONFIG3_const = 0x60
+    // CONFIG3_const = 0x60
 };
 
 enum LOFF_bits {

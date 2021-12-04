@@ -10,15 +10,15 @@
 
 /* 1000 msec = 1 sec */
 #define SLEEP_TIME_MS   1000
-#define ads129xr0 DT_NODELABEL(ads129xr0)
-#define ads129xr1 DT_NODELABEL(ads129xr1)
+#define ADS129xR0 DT_NODELABEL(ads129xr0)
+#define ADS129xR1 DT_NODELABEL(ads129xr1)
 
 void main(void)
 {
 	struct sensor_value value;
 	// const struct device *dev = DEVICE_DT_GET_ANY(ti_ads129xr);
-	const struct device *ads129xr0 = DEVICE_DT_GET(ads129xr0);
-	const struct device *ads129xr1 = DEVICE_DT_GET(ads129xr1);
+	const struct device *ads129xr0 = DEVICE_DT_GET(ADS129xR0);
+	const struct device *ads129xr1 = DEVICE_DT_GET(ADS129xR1);
 
 	if (!device_is_ready(ads129xr0)) {
 		printk("Device %s is not ready\n", ads129xr0->name);

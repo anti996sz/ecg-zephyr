@@ -6,4 +6,16 @@ menuconfig ADS129XR
 
 if ADS129XR
 
-endif # BME280
+config ADS129XR_THREAD_PRIORITY
+	int "Own thread priority"
+	default 10
+	help
+	  Priority of the thread used by the driver to handle interrupts.
+
+config ADS129XR_THREAD_STACK_SIZE
+	int "Own thread stack size"
+	default 1024
+	help
+	  Stack size of thread used by the driver to handle interrupts.
+
+endif # ADS129XR

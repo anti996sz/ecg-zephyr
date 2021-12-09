@@ -49,7 +49,8 @@ static int ads129xr_spi_transceive(const struct device *dev,
 		printk("%02x ", opcode[i]);
 	}
 
-	isWREG ? printk("%02x", data[0]) : "";
+	isWREG ? printk(" %02x", data[0]) : "";
+	printk("\n");
 
 	const struct spi_buf buf[2] = {
 		{
@@ -98,6 +99,7 @@ static int ads129xr_spi_transceive(const struct device *dev,
 	return err;
 };
 
+
 static int ads129xr_init(const struct device *dev)
 {
 	const struct ads129xr_config *drv_cfg = dev->config;
@@ -122,41 +124,24 @@ static int ads129xr_init(const struct device *dev)
 		printk("ads1298 pwdwn gpio init error");
 		return -1;
 	}
-    // GPIO的配置
-    // GPIO中断安装
-    // 旋转编码器GPIO初始化状态读取
-    // 驱动初始化状态设置
-    // 驱动线程创建
-    // 使能中断
 
 	struct ads129xr_data *drv_data = dev->data;
 	drv_data->spi = device_get_binding(DT_INST_BUS_LABEL(0));
 
 	// 停止缺省的连续读数模式
-	uint8_t opcode[1] = {SDATAC}, data[0];
+	uint8_t opcode[1] = {SDATAC}, data[0]; //SDATAC: 0x11
 	ads129xr_spi_transceive(dev, opcode, 1, data, 0);
 
 	k_msleep(1);
 
 	// 设置内部时钟输出给级联模式中的第二片芯片
 	uint8_t opcode_wreg[2] = {WREG | CONFIG1, 0x00};
-	uint8_t wreg_data[1] = {LOW_POWR_250_SPS | CLK_EN};
+	uint8_t wreg_data[1] = {LOW_POWR_250_SPS | CLK_EN};	//0x26
 	ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
 
 	// 使用内部参考 Enable internal reference
 	opcode_wreg[0] = WREG | CONFIG3;
 	wreg_data[0] = CONFIG3_const | PD_REFBUF; //0xc0;
-	ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
-
-	// 设置发送测试信号
-	opcode_wreg[0] = WREG | CONFIG2;
-	wreg_data[0] = CONFIG2_const | INT_TEST; //0x10;
-	ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
-
-	// 设置通道输入测试信号
-	opcode_wreg[0] = WREG | CHnSET;
-	opcode_wreg[1] = 0x07;
-	wreg_data[0] = CHnSET_const | TEST_SIGNAL; //0x05;
 	ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
 
 	// k_msleep(1000);
@@ -165,6 +150,8 @@ static int ads129xr_init(const struct device *dev)
 	// uint8_t opcode2[2] = {RREG, 0x01}, data2[2];	
 	// ads129xr_spi_transceive(dev, opcode2, sizeof(opcode2), data2, sizeof(data2));
 
+	// ads129xr_trigger_mode_init(dev);
+
 	return 0;
 };
 
@@ -172,10 +159,48 @@ static int ads129xr_init(const struct device *dev)
 static int ads129xr_channel_get(const struct device *dev, enum sensor_channel chan,
 			       struct sensor_value *val)
 {
+	uint8_t wreg_opcode[2] = {0x00, 0x00};
+	uint8_t wreg_data[1];
 
-	// 测试读取前2个寄存器的结果
-	uint8_t opcode2[2] = {RREG, 0x01}, data2[2];	
-	ads129xr_spi_transceive(dev, opcode2, sizeof(opcode2), data2, sizeof(data2));
+	// 设置发送测试信号
+	wreg_opcode[0] = WREG | CONFIG2;
+	wreg_data[0] = CONFIG2_const | INT_TEST; //0x10;
+	ads129xr_spi_transceive(dev, wreg_opcode, sizeof(wreg_opcode), wreg_data, sizeof(wreg_data));
+
+	// 设置通道输入测试信号
+	wreg_opcode[0] = WREG | CH1SET; //0x45
+	wreg_opcode[1] = 0x03;
+	// wreg_data[0] = CHnSET_const | TEST_SIGNAL; //0x05;
+	uint8_t wreg_data_8[8] = {0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05};
+	uint8_t wreg_data_4[4] = {0x05, 0x05, 0x05, 0x05};
+	ads129xr_spi_transceive(dev, wreg_opcode, sizeof(wreg_opcode), wreg_data_4, sizeof(wreg_data_4));
+
+	// uint8_t opcode_wreg[2] = {0x00,0x00};
+	// uint8_t wreg_data[1];
+
+	// // WREG CONFIG1 0x86
+	// opcode_wreg[0] = WREG | CONFIG1;
+	// wreg_data[0] = 0x86;
+	// ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
+
+	// // WREG CONFIG2 0x00
+	// opcode_wreg[0] = WREG | CONFIG2;
+	// wreg_data[0] = 0x00;
+	// ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
+
+	// // WREG CHnSET 0x01
+	// opcode_wreg[0] = WREG | CH1SET;
+	// opcode_wreg[1] = 0x07;
+	// uint8_t wreg_data_8[8] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+	// ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data_8, sizeof(wreg_data_8));
+
+
+	// 测试读取前n个寄存器的结果
+	uint8_t rreg_opcode[2] = {RREG, 0x0c};
+	uint8_t rreg_data[13];	
+	ads129xr_spi_transceive(dev, rreg_opcode, sizeof(rreg_opcode), rreg_data, sizeof(rreg_data));
+
+
 
 	if (chan != SENSOR_CHAN_ALL) {
 		return -ENOTSUP;
@@ -197,7 +222,7 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 };
 
 static const struct sensor_driver_api ads129xr_driver_api = {
-	// .trigger_set = ads129xr_trigger_set,
+	.trigger_set = ads129xr_trigger_set,
 	.channel_get = ads129xr_channel_get,
 };
 

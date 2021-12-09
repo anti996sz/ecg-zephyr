@@ -13,6 +13,13 @@
 #define ADS129xR0 DT_NODELABEL(ads129xr0)
 #define ADS129xR1 DT_NODELABEL(ads129xr1)
 
+static void trigger_handler(const struct device *dev,
+			    struct sensor_trigger *trig)
+{
+	printk("\nTrigger handler called in %s", dev->name);
+};
+
+
 void main(void)
 {
 	struct sensor_value value;
@@ -29,12 +36,28 @@ void main(void)
 		return;
 	}
 
-	sensor_channel_get(ads129xr0, SENSOR_CHAN_ALL, &value);
+
 	sensor_channel_get(ads129xr1, SENSOR_CHAN_ALL, &value);
+	sensor_channel_get(ads129xr0, SENSOR_CHAN_ALL, &value);
 
 	// printk("ads129xr volt %d.%d\r\n", value.val1, value.val2);
 
 	printk("Hello World! %s\n", CONFIG_BOARD);
+
+	// static struct sensor_trigger drdy_trigger = {
+	// 	.type = SENSOR_TRIG_DATA_READY,
+	// 	.chan = SENSOR_CHAN_ALL,
+	// };
+
+	// int rc;
+	// rc = sensor_trigger_set(ads129xr0, &drdy_trigger, trigger_handler);
+	// rc = sensor_trigger_set(ads129xr1, &drdy_trigger, trigger_handler);
+
+	// if (rc != 0) {
+	// 	printk("Trigger set failed: %d\n", rc);
+	// }
+
+	// printk("Trigger set got %d\n", rc);
 	
 	while (1) {
 		// printk("Hello World! %s\n", CONFIG_BOARD);

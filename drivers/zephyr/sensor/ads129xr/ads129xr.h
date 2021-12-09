@@ -47,6 +47,11 @@ struct ads129xr_config {
 struct ads129xr_data {
 	const struct device *spi;
 	uint32_t freq; /* initial clock frequency in Hz */
+    sensor_trigger_handler_t drdy_handler;
+	struct sensor_trigger drdy_trigger;
+    struct gpio_callback gpio_cb;
+    struct k_sem gpio_sem;
+    // const struct device *dev;
 };
 
 enum spi_command {
@@ -594,5 +599,10 @@ enum WCT2_bits {
 #ifdef __cplusplus
 }
 #endif /* namespace ADS129x */
+
+int ads129xr_trigger_set(const struct device *dev,
+		       const struct sensor_trigger *trig,
+		       sensor_trigger_handler_t handler);
+int ads129xr_trigger_mode_init(const struct device *dev);
 
 #endif                /* ADS129x_H */

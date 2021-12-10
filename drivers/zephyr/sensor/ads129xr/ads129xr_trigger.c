@@ -67,6 +67,7 @@ int ads129xr_trigger_mode_init(const struct device *dev)
 	}
 
     k_sem_init(&drv_data->gpio_sem, 0, 1);
+
 	k_thread_create(
 		&ads129xr_thread,
 		ads129xr_thread_stack,
@@ -92,6 +93,7 @@ int ads129xr_trigger_mode_init(const struct device *dev)
 	gpio_pin_interrupt_configure(drv_cfg->ready_gpio_spec.port,
 				     drv_cfg->ready_gpio_spec.pin,
 				     GPIO_INT_EDGE_TO_ACTIVE);
+
 	return 0;
 }
 

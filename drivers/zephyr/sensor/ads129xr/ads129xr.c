@@ -49,7 +49,13 @@ static int ads129xr_spi_transceive(const struct device *dev,
 		printk("%02x ", opcode[i]);
 	}
 
-	isWREG ? printk(" %02x", data[0]) : "";
+	if(isWREG){
+		for (int i = 0; i < data_length; i++)
+		{
+			printk("%02x ", data[i]);
+		}
+		
+	}
 	printk("\n");
 
 	const struct spi_buf buf[2] = {
@@ -112,7 +118,6 @@ static int ads129xr_init(const struct device *dev)
 							drv_cfg->reset_gpio_spec.pin, 
 							GPIO_OUTPUT_INACTIVE | drv_cfg->reset_gpio_spec.dt_flags);
 
-
 	k_msleep(1000);	// 确保ADS129xR加电后到正常状态 waite the ads1298 to normal after power on 
 
 	ret = gpio_pin_configure(drv_cfg->ledpw_gpio_spec.port, 
@@ -121,7 +126,7 @@ static int ads129xr_init(const struct device *dev)
 	// ret = gpio_pin_set(drv_cfg->ledpw_gpio_spec.port, drv_cfg->ledpw_gpio_spec.pin, 1);
 
 	if (ret < 0) {
-		printk("ads1298 pwdwn gpio init error");
+		printk("ads1298 gpio init error");
 		return -1;
 	}
 
@@ -134,23 +139,28 @@ static int ads129xr_init(const struct device *dev)
 
 	k_msleep(1);
 
-	// 设置内部时钟输出给级联模式中的第二片芯片
-	uint8_t opcode_wreg[2] = {WREG | CONFIG1, 0x00};
-	uint8_t wreg_data[1] = {LOW_POWR_250_SPS | CLK_EN};	//0x26
-	ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
+	// 设置寄存器
+	uint8_t wreg_opcode[2] = {WREG | CONFIG1, 11};
+	uint8_t wreg_data[12] = {
+		CONFIG1_const | LOW_POWR_250_SPS | CLK_EN, 
+		CONFIG2_const | INT_TEST, 
+		CONFIG3_const | PD_REFBUF,
+		CONFIG4_const,
+		CH1SET_const | TEST_SIGNAL,
+		CH1SET_const | TEST_SIGNAL,
+		CH1SET_const | TEST_SIGNAL,
+		CH1SET_const | TEST_SIGNAL,
+		CH1SET_const | TEST_SIGNAL,
+		CH1SET_const | TEST_SIGNAL,
+		CH1SET_const | TEST_SIGNAL,
+		CH1SET_const | TEST_SIGNAL
+	};
 
-	// 使用内部参考 Enable internal reference
-	opcode_wreg[0] = WREG | CONFIG3;
-	wreg_data[0] = CONFIG3_const | PD_REFBUF; //0xc0;
-	ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
+	ads129xr_spi_transceive(dev, wreg_opcode, sizeof(wreg_opcode), wreg_data, sizeof(wreg_data));
 
-	// k_msleep(1000);
-
-	// 测试读取前2个寄存器的结果
-	// uint8_t opcode2[2] = {RREG, 0x01}, data2[2];	
-	// ads129xr_spi_transceive(dev, opcode2, sizeof(opcode2), data2, sizeof(data2));
-
-	// ads129xr_trigger_mode_init(dev);
+	// 开始数据采集
+	opcode[0] = START;
+	ads129xr_spi_transceive(dev, opcode, 1, data, 0);
 
 	return 0;
 };
@@ -159,48 +169,14 @@ static int ads129xr_init(const struct device *dev)
 static int ads129xr_channel_get(const struct device *dev, enum sensor_channel chan,
 			       struct sensor_value *val)
 {
-	uint8_t wreg_opcode[2] = {0x00, 0x00};
-	uint8_t wreg_data[1];
-
-	// 设置发送测试信号
-	wreg_opcode[0] = WREG | CONFIG2;
-	wreg_data[0] = CONFIG2_const | INT_TEST; //0x10;
-	ads129xr_spi_transceive(dev, wreg_opcode, sizeof(wreg_opcode), wreg_data, sizeof(wreg_data));
-
-	// 设置通道输入测试信号
-	wreg_opcode[0] = WREG | CH1SET; //0x45
-	wreg_opcode[1] = 0x03;
-	// wreg_data[0] = CHnSET_const | TEST_SIGNAL; //0x05;
-	uint8_t wreg_data_8[8] = {0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05};
-	uint8_t wreg_data_4[4] = {0x05, 0x05, 0x05, 0x05};
-	ads129xr_spi_transceive(dev, wreg_opcode, sizeof(wreg_opcode), wreg_data_4, sizeof(wreg_data_4));
-
-	// uint8_t opcode_wreg[2] = {0x00,0x00};
-	// uint8_t wreg_data[1];
-
-	// // WREG CONFIG1 0x86
-	// opcode_wreg[0] = WREG | CONFIG1;
-	// wreg_data[0] = 0x86;
-	// ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
-
-	// // WREG CONFIG2 0x00
-	// opcode_wreg[0] = WREG | CONFIG2;
-	// wreg_data[0] = 0x00;
-	// ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data, sizeof(wreg_data));
-
-	// // WREG CHnSET 0x01
-	// opcode_wreg[0] = WREG | CH1SET;
-	// opcode_wreg[1] = 0x07;
-	// uint8_t wreg_data_8[8] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
-	// ads129xr_spi_transceive(dev, opcode_wreg, sizeof(opcode_wreg), wreg_data_8, sizeof(wreg_data_8));
-
-
 	// 测试读取前n个寄存器的结果
-	uint8_t rreg_opcode[2] = {RREG, 0x0c};
-	uint8_t rreg_data[13];	
+	const uint8_t rreg_count = 13;
+	uint8_t rreg_opcode[2] = {RREG, rreg_count-1};
+	uint8_t rreg_data[rreg_count];	
 	ads129xr_spi_transceive(dev, rreg_opcode, sizeof(rreg_opcode), rreg_data, sizeof(rreg_data));
 
-
+	// 设置中断触发器
+	ads129xr_trigger_mode_init(dev);
 
 	if (chan != SENSOR_CHAN_ALL) {
 		return -ENOTSUP;

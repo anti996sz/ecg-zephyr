@@ -102,6 +102,25 @@ int ads129xr_trigger_set(const struct device *dev,
 			const struct sensor_trigger *trig,
 			sensor_trigger_handler_t handler)
 {
+	// 设置中断触发器，中断触发器只需要初始化一次
+	static bool trigger_inited = false;
+	if(!trigger_inited){
+
+		// start conversion
+		const struct ads129xr_config *drv_cfg = dev->config;
+		int ret = gpio_pin_configure(drv_cfg->start_gpio_spec.port, 
+							drv_cfg->start_gpio_spec.pin, 
+							GPIO_OUTPUT_ACTIVE | drv_cfg->start_gpio_spec.dt_flags);
+
+		if (ret < 0) {
+			printk("ads1298 gpio init error");
+			return -1;
+		}
+
+		ads129xr_trigger_mode_init(dev);	
+		trigger_inited = true;
+	}
+
     struct ads129xr_data *drv_data = dev->data;
 
     if (trig->type != SENSOR_TRIG_DATA_READY) {

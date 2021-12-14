@@ -11,8 +11,13 @@
 
 /* 1000 msec = 1 sec */
 #define SLEEP_TIME_MS   1000
-#define ADS129xR0 DT_NODELABEL(ads129xr0)
-#define ADS129xR1 DT_NODELABEL(ads129xr1)
+#define ADS1298R DT_NODELABEL(ads1298r)
+#define ADS1294R DT_NODELABEL(ads1294r)
+
+struct sensor_value value1, value2;
+// const struct device *dev = DEVICE_DT_GET_ANY(ti_ads129xr);
+const struct device *ads129xr0 = DEVICE_DT_GET(ADS1294R);
+const struct device *ads129xr1 = DEVICE_DT_GET(ADS1298R);
 
 int counter = 0;
 
@@ -41,18 +46,18 @@ static const char *now_str(void)
 static void trigger_handler(const struct device *dev,
 			    struct sensor_trigger *trig)
 {
+	sensor_channel_get(ads129xr0, SENSOR_CHAN_ALL, &value1);
+	sensor_channel_get(ads129xr1, SENSOR_CHAN_ALL, &value2);
+
 	printk("\n%s: Trigger handler called in %s: %d", now_str(), dev->name, counter++);
+	printk("\nDevice1: volt %d.%d", value1.val1, value1.val2);
+	printk("\nDevice2: volt %d.%d", value2.val1, value2.val2);
 };
 
 
 
 void main(void)
 {
-	struct sensor_value value;
-	// const struct device *dev = DEVICE_DT_GET_ANY(ti_ads129xr);
-	const struct device *ads129xr0 = DEVICE_DT_GET(ADS129xR0);
-	const struct device *ads129xr1 = DEVICE_DT_GET(ADS129xR1);
-
 	if (!device_is_ready(ads129xr0)) {
 		printk("Device %s is not ready\n", ads129xr0->name);
 		return;
@@ -61,12 +66,6 @@ void main(void)
 		printk("Device %s is not ready\n", ads129xr1->name);
 		return;
 	}
-
-
-	// sensor_channel_get(ads129xr0, SENSOR_CHAN_ALL, &value);
-	sensor_channel_get(ads129xr1, SENSOR_CHAN_ALL, &value);
-
-	// printk("ads129xr volt %d.%d\r\n", value.val1, value.val2);
 
 	printk("Hello World! %s\n", CONFIG_BOARD);
 
@@ -77,9 +76,8 @@ void main(void)
 		.chan = SENSOR_CHAN_ALL,
 	};
 
-	int rc;
-	rc = sensor_trigger_set(ads129xr0, &drdy_trigger, trigger_handler);
-	rc = sensor_trigger_set(ads129xr1, &drdy_trigger, trigger_handler);
+	// 数据准备好中断触发器只需要调用一次
+	int rc = sensor_trigger_set(ads129xr1, &drdy_trigger, trigger_handler);
 
 	if (rc != 0) {
 		printk("Trigger set failed: %d\n", rc);

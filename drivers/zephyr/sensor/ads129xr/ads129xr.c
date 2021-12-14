@@ -9,6 +9,7 @@
 #include <kernel.h>
 #include <sys/printk.h>
 #include <drivers/sensor.h>
+#include <string.h>
 
 #include "ads129xr.h"
 
@@ -39,7 +40,7 @@ static int ads129xr_spi_transceive(const struct device *dev,
 	// If WREG sent, opcode[0] >> 5 == 0x02 must be 1
 	bool isWREG = (opcode[0] >> 5 == 0x02);
 	bool isRREG = (opcode[0] >> 5 == 0x01);
-	bool isReadData = (opcode[0] == RDATA) || (opcode[0] == RDATAC);
+	bool isReadData = (opcode[0] == RDATA) || (op_length == 0); // op_length: RDATAC
 	
 	printk("\n------------------------------");
 	printk("\nDevice Name:  %s", dev->name);
@@ -123,7 +124,6 @@ static int ads129xr_init(const struct device *dev)
 	ret = gpio_pin_configure(drv_cfg->ledpw_gpio_spec.port, 
 							drv_cfg->ledpw_gpio_spec.pin, 
 							GPIO_OUTPUT_ACTIVE | drv_cfg->ledpw_gpio_spec.dt_flags);
-	// ret = gpio_pin_set(drv_cfg->ledpw_gpio_spec.port, drv_cfg->ledpw_gpio_spec.pin, 1);
 
 	if (ret < 0) {
 		printk("ads1298 gpio init error");
@@ -158,9 +158,14 @@ static int ads129xr_init(const struct device *dev)
 
 	ads129xr_spi_transceive(dev, wreg_opcode, sizeof(wreg_opcode), wreg_data, sizeof(wreg_data));
 
-	// 开始数据采集
-	opcode[0] = START;
-	ads129xr_spi_transceive(dev, opcode, 1, data, 0);
+	// 测试读取前n个寄存器的结果
+	uint8_t rreg_opcode[2] = {RREG, 12};
+	uint8_t rreg_data[13];	
+	ads129xr_spi_transceive(dev, rreg_opcode, sizeof(rreg_opcode), rreg_data, sizeof(rreg_data));
+
+	// enable RDATAC mode
+	// opcode[0] = RDATAC;
+	// ads129xr_spi_transceive(dev, opcode, 1, NULL, 0);
 
 	return 0;
 };
@@ -169,17 +174,35 @@ static int ads129xr_init(const struct device *dev)
 static int ads129xr_channel_get(const struct device *dev, enum sensor_channel chan,
 			       struct sensor_value *val)
 {
-	// 测试读取前n个寄存器的结果
-	const uint8_t rreg_count = 13;
-	uint8_t rreg_opcode[2] = {RREG, rreg_count-1};
-	uint8_t rreg_data[rreg_count];	
-	ads129xr_spi_transceive(dev, rreg_opcode, sizeof(rreg_opcode), rreg_data, sizeof(rreg_data));
-
-	// 设置中断触发器
-	ads129xr_trigger_mode_init(dev);
-
 	if (chan != SENSOR_CHAN_ALL) {
 		return -ENOTSUP;
+	}
+
+	// uint8_t opcode[0]; //= {RDATAC};
+	uint8_t opcode[1] = {RDATA};
+	uint8_t data_9[27];	// receive ads1298r RDATAC data 24*9 = 216 bits
+	uint8_t data_5[15];	// receive ads1294r RDATAC data 24*5 = 120 bits
+
+	if(strcmp(dev->name, "ADS1298R") == 0){
+		ads129xr_spi_transceive(dev, opcode, sizeof(opcode), data_9, sizeof(data_9));
+		// printk("\nADS1298R: 0x");
+
+		// for (int i = 0; i < 27; i++)
+		// {
+		// 	printk("%02x ", data_9[i]);
+		// }
+		
+		// printk("\n");
+	} else {
+		ads129xr_spi_transceive(dev, opcode, sizeof(opcode), data_5, sizeof(data_5));
+		// printk("\nADS1294R: 0x");
+
+		// for (int i = 0; i < 15; i++)
+		// {
+		// 	printk("%02x ", data_5[i]);
+		// }
+
+		// printk("\n");
 	}
 
 	// acc = drv_data->pulses;

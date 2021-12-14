@@ -60,9 +60,9 @@
 	sck-pin = < 12 >;
 	miso-pin = < 14 >;
 	mosi-pin = < 18 >;
-	cs-gpios = < &gpio0 9 GPIO_ACTIVE_LOW >,< &gpio0 15 GPIO_ACTIVE_LOW >;
+	cs-gpios = < &gpio0 9 GPIO_ACTIVE_LOW >, < &gpio0 15 GPIO_ACTIVE_LOW >;
 
-	ads129xr0: ads129xr@0 {
+	ads1294r: ads129xr@0 {
 		compatible = "ti,ads129xr";
 		label = "ADS1294R";
 		reg = <0>;
@@ -76,7 +76,7 @@
 		ledpw-gpios = < &gpio0 27 GPIO_ACTIVE_HIGH >;
 	};
 
-	ads129xr1: ads129xr@1 {
+	ads1298r: ads129xr@1 {
 		compatible = "ti,ads129xr";
 		label = "ADS1298R";
 		reg = <1>;

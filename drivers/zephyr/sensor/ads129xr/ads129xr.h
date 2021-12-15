@@ -600,6 +600,12 @@ enum WCT2_bits {
 }
 #endif /* namespace ADS129x */
 
+int ads129xr_spi_transceive(const struct device *dev, 
+							uint8_t *opcode, 
+							size_t op_length,
+							uint8_t *data,
+							size_t data_length);
+
 int ads129xr_trigger_set(const struct device *dev,
 		       const struct sensor_trigger *trig,
 		       sensor_trigger_handler_t handler);

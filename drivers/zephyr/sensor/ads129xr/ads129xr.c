@@ -28,7 +28,7 @@
  * @param data_length the length of data
  * @return int return of spi_transceive()
  */
-static int ads129xr_spi_transceive(const struct device *dev, 
+int ads129xr_spi_transceive(const struct device *dev, 
 							uint8_t *opcode, 
 							size_t op_length,
 							uint8_t *data,
@@ -163,9 +163,8 @@ static int ads129xr_init(const struct device *dev)
 	uint8_t rreg_data[13];	
 	ads129xr_spi_transceive(dev, rreg_opcode, sizeof(rreg_opcode), rreg_data, sizeof(rreg_data));
 
-	// enable RDATAC mode
-	// opcode[0] = RDATAC;
-	// ads129xr_spi_transceive(dev, opcode, 1, NULL, 0);
+	// start conversion see ads129xr_trigger_set(), a unknow reason cause restart if set start conversion here.
+	// another reason is the second ads129xr not prsent when start conversion here.
 
 	return 0;
 };

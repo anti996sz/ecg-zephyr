@@ -106,6 +106,10 @@ int ads129xr_trigger_set(const struct device *dev,
 	static bool trigger_inited = false;
 	if(!trigger_inited){
 
+		// enabel RDATAC mode
+		// uint8_t opcode[1] = {RDATAC};
+		// ads129xr_spi_transceive(dev, opcode, 1, NULL, 0);
+
 		// start conversion
 		const struct ads129xr_config *drv_cfg = dev->config;
 		int ret = gpio_pin_configure(drv_cfg->start_gpio_spec.port, 

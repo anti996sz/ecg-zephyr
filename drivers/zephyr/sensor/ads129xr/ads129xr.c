@@ -39,25 +39,25 @@ int ads129xr_spi_transceive(const struct device *dev,
 
 	// If WREG sent, opcode[0] >> 5 == 0x02 must be 1
 	bool isWREG = (opcode[0] >> 5 == 0x02);
-	bool isRREG = (opcode[0] >> 5 == 0x01);
-	bool isReadData = (opcode[0] == RDATA) || (op_length == 0); // op_length: RDATAC
+	// bool isRREG = (opcode[0] >> 5 == 0x01);
+	// bool isReadData = (opcode[0] == RDATA) || (op_length == 0); // op_length: RDATAC
 	
-	printk("\n------------------------------");
-	printk("\nDevice Name:  %s", dev->name);
-	printk("\nSPI sent:     0x");
-	for (int i = 0; i < op_length; i++)
-	{
-		printk("%02x ", opcode[i]);
-	}
+	// printk("\n------------------------------");
+	// printk("\nDevice Name:  %s", dev->name);
+	// printk("\nSPI sent:     0x");
+	// for (int i = 0; i < op_length; i++)
+	// {
+	// 	printk("%02x ", opcode[i]);
+	// }
 
-	if(isWREG){
-		for (int i = 0; i < data_length; i++)
-		{
-			printk("%02x ", data[i]);
-		}
+	// if(isWREG){
+	// 	for (int i = 0; i < data_length; i++)
+	// 	{
+	// 		printk("%02x ", data[i]);
+	// 	}
 		
-	}
-	printk("\n");
+	// }
+	// printk("\n");
 
 	const struct spi_buf buf[2] = {
 		{
@@ -88,15 +88,15 @@ int ads129xr_spi_transceive(const struct device *dev,
 
 	if (err == 0) {
 
-		if(isRREG || isReadData) // if read register then print the data received
-		{
-			printk("\nSPI received: 0x");
-			for (int i = 0; i < data_length; i++)
-			{
-				printk("%02x ", data[i]);
-			}
-			printk("\n");
-		}
+		// if(isRREG || isReadData) // if read register then print the data received
+		// {
+		// 	printk("\nSPI received: 0x");
+		// 	for (int i = 0; i < data_length; i++)
+		// 	{
+		// 		printk("%02x ", data[i]);
+		// 	}
+		// 	printk("\n");
+		// }
 		
 	} else {
 
@@ -141,19 +141,13 @@ static int ads129xr_init(const struct device *dev)
 
 	// 设置寄存器
 	uint8_t wreg_opcode[2] = {WREG | CONFIG1, 11};
+	uint8_t chXset = CH1SET_const | TEST_SIGNAL; // | GAIN10;
 	uint8_t wreg_data[12] = {
 		CONFIG1_const | LOW_POWR_250_SPS | CLK_EN, 
 		CONFIG2_const | INT_TEST, 
 		CONFIG3_const | PD_REFBUF,
 		CONFIG4_const,
-		CH1SET_const | TEST_SIGNAL | GAIN10,
-		CH1SET_const | TEST_SIGNAL | GAIN10,
-		CH1SET_const | TEST_SIGNAL | GAIN10,
-		CH1SET_const | TEST_SIGNAL | GAIN10,
-		CH1SET_const | TEST_SIGNAL | GAIN10,
-		CH1SET_const | TEST_SIGNAL | GAIN10,
-		CH1SET_const | TEST_SIGNAL | GAIN10,
-		CH1SET_const | TEST_SIGNAL | GAIN10
+		chXset, chXset, chXset, chXset, chXset, chXset, chXset, chXset,
 	};
 
 	ads129xr_spi_transceive(dev, wreg_opcode, sizeof(wreg_opcode), wreg_data, sizeof(wreg_data));
@@ -180,9 +174,9 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 	// uint8_t opcode[0]; //= {RDATAC};
 	uint8_t opcode[1] = {RDATA};
 
-	int64_t temp;
-	const uint64_t max_pos_input = 0x7FFFFF; // positive full-scale input
-	const uint64_t min_neg_input = 0xFFFFFF; // negitive minimum input
+	int32_t temp;
+	const int32_t max_pos_input = 0x7FFFFF; // positive full-scale input
+	const int32_t min_neg_input = 0xFFFFFF; // negitive minimum input
 	double volt; // reale volt output
 
 	if(strcmp(dev->name, "ADS1298R") == 0){

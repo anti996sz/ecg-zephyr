@@ -49,19 +49,11 @@ static void trigger_handler(const struct device *dev,
 	sensor_channel_get(ads1294r, SENSOR_CHAN_ALL, value_1294r);
 	sensor_channel_get(ads1298r, SENSOR_CHAN_ALL, value_1298r);
 
-	printk("\n%s: Trigger handler called in %s: %d", now_str(), dev->name, counter++);
+	printk("\n%s: %s %d volt %d.%06d mv", 
+		now_str(), dev->name, counter++, value_1298r[1].val1, value_1298r[1].val2);
 
-	// static int32_t temp = (int32_t)(&value_1298r[1].val1);
-	// static const uint32_t max_pos_input = 0x7FFFFF; // positive full-scale input
-	// static const uint32_t min_neg_input = 0xFFFFFF; // negitive minimum input
-	// static double volt; // reale volt output
-
-	// temp = temp < max_pos_input ? temp : (min_neg_input - temp) * (-1);
-	// volt = temp * 2.4 / max_pos_input;
-
-	// printk("\nvalue_1298r: volt %d.%06d mv", (int8_t)-1.12345678, (int8_t)-123.45678);
-	printk("\nADS1298R: volt %d.%06d mv", value_1298r[1].val1, value_1298r[1].val2);
-	printk("\nADS1294R: volt %d.%06d mv", value_1294r[1].val1, value_1294r[1].val2);
+	// printk("\nADS1298R: volt %d.%06d mv", value_1298r[1].val1, value_1298r[1].val2);
+	// printk("\nADS1294R: volt %d.%06d mv", value_1294r[1].val1, value_1294r[1].val2);
 };
 
 

@@ -14,10 +14,10 @@
 #define ADS1298R DT_NODELABEL(ads1298r)
 #define ADS1294R DT_NODELABEL(ads1294r)
 
-struct sensor_value value1, value2;
+struct sensor_value value_1298r[9], value_1294r[5];
 // const struct device *dev = DEVICE_DT_GET_ANY(ti_ads129xr);
-const struct device *ads129xr0 = DEVICE_DT_GET(ADS1294R);
-const struct device *ads129xr1 = DEVICE_DT_GET(ADS1298R);
+const struct device *ads1294r = DEVICE_DT_GET(ADS1294R);
+const struct device *ads1298r = DEVICE_DT_GET(ADS1298R);
 
 int counter = 0;
 
@@ -46,24 +46,34 @@ static const char *now_str(void)
 static void trigger_handler(const struct device *dev,
 			    struct sensor_trigger *trig)
 {
-	sensor_channel_get(ads129xr0, SENSOR_CHAN_ALL, &value1);
-	sensor_channel_get(ads129xr1, SENSOR_CHAN_ALL, &value2);
+	sensor_channel_get(ads1294r, SENSOR_CHAN_ALL, value_1294r);
+	sensor_channel_get(ads1298r, SENSOR_CHAN_ALL, value_1298r);
 
 	printk("\n%s: Trigger handler called in %s: %d", now_str(), dev->name, counter++);
-	printk("\nDevice1: volt %d.%d", value1.val1, value1.val2);
-	printk("\nDevice2: volt %d.%d", value2.val1, value2.val2);
+
+	// static int32_t temp = (int32_t)(&value_1298r[1].val1);
+	// static const uint32_t max_pos_input = 0x7FFFFF; // positive full-scale input
+	// static const uint32_t min_neg_input = 0xFFFFFF; // negitive minimum input
+	// static double volt; // reale volt output
+
+	// temp = temp < max_pos_input ? temp : (min_neg_input - temp) * (-1);
+	// volt = temp * 2.4 / max_pos_input;
+
+	// printk("\nvalue_1298r: volt %d.%06d mv", (int8_t)-1.12345678, (int8_t)-123.45678);
+	printk("\nADS1298R: volt %d.%06d mv", value_1298r[1].val1, value_1298r[1].val2);
+	printk("\nADS1294R: volt %d.%06d mv", value_1294r[1].val1, value_1294r[1].val2);
 };
 
 
 
 void main(void)
 {
-	if (!device_is_ready(ads129xr0)) {
-		printk("Device %s is not ready\n", ads129xr0->name);
+	if (!device_is_ready(ads1294r)) {
+		printk("Device %s is not ready\n", ads1294r->name);
 		return;
 	}
-	if (!device_is_ready(ads129xr1)) {
-		printk("Device %s is not ready\n", ads129xr1->name);
+	if (!device_is_ready(ads1298r)) {
+		printk("Device %s is not ready\n", ads1298r->name);
 		return;
 	}
 
@@ -77,7 +87,7 @@ void main(void)
 	};
 
 	// 数据准备好中断触发器只需要调用一次
-	int rc = sensor_trigger_set(ads129xr1, &drdy_trigger, trigger_handler);
+	int rc = sensor_trigger_set(ads1298r, &drdy_trigger, trigger_handler);
 
 	if (rc != 0) {
 		printk("Trigger set failed: %d\n", rc);

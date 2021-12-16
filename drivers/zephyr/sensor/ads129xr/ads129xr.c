@@ -146,14 +146,14 @@ static int ads129xr_init(const struct device *dev)
 		CONFIG2_const | INT_TEST, 
 		CONFIG3_const | PD_REFBUF,
 		CONFIG4_const,
-		CH1SET_const | TEST_SIGNAL,
-		CH1SET_const | TEST_SIGNAL,
-		CH1SET_const | TEST_SIGNAL,
-		CH1SET_const | TEST_SIGNAL,
-		CH1SET_const | TEST_SIGNAL,
-		CH1SET_const | TEST_SIGNAL,
-		CH1SET_const | TEST_SIGNAL,
-		CH1SET_const | TEST_SIGNAL
+		CH1SET_const | TEST_SIGNAL | GAIN10,
+		CH1SET_const | TEST_SIGNAL | GAIN10,
+		CH1SET_const | TEST_SIGNAL | GAIN10,
+		CH1SET_const | TEST_SIGNAL | GAIN10,
+		CH1SET_const | TEST_SIGNAL | GAIN10,
+		CH1SET_const | TEST_SIGNAL | GAIN10,
+		CH1SET_const | TEST_SIGNAL | GAIN10,
+		CH1SET_const | TEST_SIGNAL | GAIN10
 	};
 
 	ads129xr_spi_transceive(dev, wreg_opcode, sizeof(wreg_opcode), wreg_data, sizeof(wreg_data));
@@ -179,42 +179,42 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 
 	// uint8_t opcode[0]; //= {RDATAC};
 	uint8_t opcode[1] = {RDATA};
-	uint8_t data_9[27];	// receive ads1298r RDATAC data 24*9 = 216 bits
-	uint8_t data_5[15];	// receive ads1294r RDATAC data 24*5 = 120 bits
+
+	int64_t temp;
+	const uint64_t max_pos_input = 0x7FFFFF; // positive full-scale input
+	const uint64_t min_neg_input = 0xFFFFFF; // negitive minimum input
+	double volt; // reale volt output
 
 	if(strcmp(dev->name, "ADS1298R") == 0){
-		ads129xr_spi_transceive(dev, opcode, sizeof(opcode), data_9, sizeof(data_9));
-		// printk("\nADS1298R: 0x");
-
-		// for (int i = 0; i < 27; i++)
-		// {
-		// 	printk("%02x ", data_9[i]);
-		// }
 		
-		// printk("\n");
+		uint8_t data_9[27];	// receive ads1298r RDATAC data 24*9 = 216 bits
+		ads129xr_spi_transceive(dev, opcode, sizeof(opcode), data_9, sizeof(data_9));
+		val[0].val1 = (data_9[0] << 16) | (data_9[1] << 8) | data_9[2];
+
+		for (size_t i = 1; i < 9; i++)
+		{
+			temp = (data_9[i*3] << 16) | (data_9[i*3+1] << 8) | data_9[i*3+2];
+			temp = temp < max_pos_input ? temp : temp - min_neg_input;
+			volt = temp * 2.4 / max_pos_input * 1000; // set unit to mV
+
+			sensor_value_from_double(&val[i], volt);
+		}
+		
 	} else {
+
+		uint8_t data_5[15];	// receive ads1294r RDATAC data 24*5 = 120 bits
 		ads129xr_spi_transceive(dev, opcode, sizeof(opcode), data_5, sizeof(data_5));
-		// printk("\nADS1294R: 0x");
+		val[0].val1 = (data_5[0] << 16) | (data_5[1] << 8) | data_5[2];
 
-		// for (int i = 0; i < 15; i++)
-		// {
-		// 	printk("%02x ", data_5[i]);
-		// }
+		for (size_t i = 1; i < 5; i++)
+		{
+			temp = (data_5[i*3] << 16) | (data_5[i*3+1] << 8) | data_5[i*3+2];
+			temp = temp < max_pos_input ? temp : temp - min_neg_input;
+			volt = temp * 2.4 / max_pos_input * 1000; // set unit to mV
 
-		// printk("\n");
+			sensor_value_from_double(&val[i], volt);
+		}
 	}
-
-	// acc = drv_data->pulses;
-
-	// val->val1 = acc * FULL_ANGLE / (drv_cfg->ppr * drv_cfg->spp);
-	// val->val2 = acc * FULL_ANGLE - val->val1 * (drv_cfg->ppr * drv_cfg->spp);
-	// if (val->val2) {
-	// 	val->val2 *= 1000000;
-	// 	val->val2 /= (drv_cfg->ppr * drv_cfg->spp);
-	// }
-
-	val->val1 = 1;
-	val->val2 = 2;
 
 	return 0;
 };

@@ -188,7 +188,7 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 		for (size_t i = 1; i < 9; i++)
 		{
 			temp = (data_9[i*3] << 16) | (data_9[i*3+1] << 8) | data_9[i*3+2];
-			temp = temp < max_pos_input ? temp : temp - min_neg_input;
+			temp = (temp <= max_pos_input) ? temp : (temp - min_neg_input - 1);
 			volt = temp * 2.4 / max_pos_input * 1000; // set unit to mV
 
 			sensor_value_from_double(&val[i], volt);
@@ -202,8 +202,10 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 
 		for (size_t i = 1; i < 5; i++)
 		{
-			temp = (data_5[i*3] << 16) | (data_5[i*3+1] << 8) | data_5[i*3+2];
-			temp = temp < max_pos_input ? temp : temp - min_neg_input;
+			temp = (data_5[i*3] << 16) | (data_5[i*3+1] << 8); // | data_5[i*3+2];
+			// temp = 0xFFFFFF;
+			// temp = 0x800000;
+			temp = (temp <= max_pos_input) ? temp : (temp - min_neg_input - 1);
 			volt = temp * 2.4 / max_pos_input * 1000; // set unit to mV
 
 			sensor_value_from_double(&val[i], volt);

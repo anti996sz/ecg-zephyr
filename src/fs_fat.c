@@ -1,9 +1,19 @@
+#include <zephyr.h>
+#include <device.h>
+#include <devicetree.h>
+#include <drivers/gpio.h>
+
 #include <storage/disk_access.h>
 #include <logging/log.h>
 #include <fs/fs.h>
 #include <ff.h>
 
 #include "fs_fat.h"
+
+#define SDPWR_NODE 	DT_NODELABEL(sdpwr)
+#define SDPWR_GPIO	DT_GPIO_LABEL(SDPWR_NODE, gpios)
+#define PIN			DT_GPIO_PIN(SDPWR_NODE, gpios)
+#define FLAGS		DT_GPIO_FLAGS(SDPWR_NODE, gpios)
 
 LOG_MODULE_REGISTER(fs_fat);
 
@@ -26,6 +36,14 @@ void fs_test(void){
 
 		/* raw disk i/o */
 	do {
+
+		const struct device *dev = device_get_binding(SDPWR_GPIO);
+		int ret = gpio_pin_configure(dev, PIN, GPIO_OUTPUT_ACTIVE | FLAGS);
+		if (ret < 0) {
+			LOG_ERR("SD power controller port config error.");
+			return;
+		}
+
 		static const char *disk_pdrv = "SD";
 		uint64_t memory_size_mb;
 		uint32_t block_count;
@@ -66,9 +84,41 @@ void fs_test(void){
 		printk("Error mounting disk.\n");
 	}
 
-	while (1) {
-		k_sleep(K_MSEC(1000));
+	// while (1) {
+	// 	k_sleep(K_MSEC(1000));
+	// }
+
+	uint8_t str[500] = {0x33};
+
+	for (size_t i = 0; i < 500; i++)
+	{
+		str[i] = i;
+		
+	};
+
+
+	struct fs_file_t zfp;
+	fs_file_t_init(&zfp);
+
+	int result = fs_open(&zfp, "/SD:/test.dat", FS_O_CREATE | FS_O_RDWR);
+
+	if(result != FR_OK){
+		printk("Open file result: %d\n", result);
 	}
+	LOG_INF("Creat and open file");
+
+
+	result = fs_write(&zfp, &str, sizeof(str));
+	LOG_INF("Bytes write");
+	printk("Bytes writen: %d\n", result);
+
+	result = fs_sync(&zfp);
+	LOG_INF("File Sync result");
+	printk("File Sync result: %d\n", result);
+
+	result = fs_close(&zfp);
+	LOG_INF("File Close result");
+	printk("File Close result: %d\n", result);
 };
 
 static int lsdir(const char *path)

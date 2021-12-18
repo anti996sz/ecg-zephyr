@@ -8,11 +8,9 @@
 #include <zephyr.h>
 #include <sys/printk.h>
 #include <drivers/sensor.h>
-
-#include <storage/disk_access.h>
 #include <logging/log.h>
-#include <fs/fs.h>
-#include <ff.h>
+
+#include "fs_fat.h"
 
 LOG_MODULE_REGISTER(main);
 
@@ -55,69 +53,21 @@ static void trigger_handler(const struct device *dev, struct sensor_trigger *tri
 	sensor_channel_get(ads1294r, SENSOR_CHAN_ALL, value_1294r);
 	sensor_channel_get(ads1298r, SENSOR_CHAN_ALL, value_1298r);
 
-	printk("\n%s: %d volt(mV) ", now_str(), counter++);
+	// printk("\n%s: %d volt(mV) ", now_str(), counter++);
 
-	for (size_t i = 1; i < 9; i++)
-	{
-		printk("%d.%06d\t", value_1298r[i].val1, value_1298r[i].val2);
-	}
+	// for (size_t i = 1; i < 9; i++)
+	// {
+	// 	printk("%d.%06d\t", value_1298r[i].val1, value_1298r[i].val2);
+	// }
 
-	for (size_t i = 1; i < 5; i++)
-	{
-		printk("%d.%06d\t", value_1294r[i].val1, value_1294r[i].val2);
-	}
+	// for (size_t i = 1; i < 5; i++)
+	// {
+	// 	printk("%d.%06d\t", value_1294r[i].val1, value_1294r[i].val2);
+	// }
 	
 };
 
 
-// static int lsdir(const char *path);
-void fs_test(void){
-	
-	static FATFS fat_fs;
-	/* mounting info */
-	static struct fs_mount_t mp = {
-		.type = FS_FATFS,
-		.fs_data = &fat_fs,
-	};
-
-	/*
-	*  Note the fatfs library is able to mount only strings inside _VOLUME_STRS
-	*  in ffconf.h
-	*/
-	static const char *disk_mount_pt = "/SD:";
-
-		/* raw disk i/o */
-	do {
-		static const char *disk_pdrv = "SD";
-		uint64_t memory_size_mb;
-		uint32_t block_count;
-		uint32_t block_size;
-
-		if (disk_access_init(disk_pdrv) != 0) {
-			LOG_ERR("Storage init ERROR!");
-			break;
-		}
-
-		if (disk_access_ioctl(disk_pdrv,
-			DISK_IOCTL_GET_SECTOR_COUNT, &block_count)) {
-			LOG_ERR("Unable to get sector count");
-			break;
-		}
-		LOG_INF("Block count %u", block_count);
-
-		if (disk_access_ioctl(disk_pdrv,
-			DISK_IOCTL_GET_SECTOR_SIZE, &block_size)) {
-			LOG_ERR("Unable to get sector size");
-			break;
-		}
-		printk("Sector size %u\n", block_size);
-
-		memory_size_mb = (uint64_t)block_count * block_size;
-		printk("Memory Size(MB) %u\n", (uint32_t)(memory_size_mb >> 20));
-
-	} while (0);
-
-};
 
 void main(void)
 {

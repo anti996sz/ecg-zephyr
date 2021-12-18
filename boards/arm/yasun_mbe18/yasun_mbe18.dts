@@ -54,7 +54,6 @@
 
 &spi1 {
 	status = "okay"; 
-	label = "SPI_1";
 	compatible = "nordic,nrf-spim";
 
 	miso-pin = <7>;

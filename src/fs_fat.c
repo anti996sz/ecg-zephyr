@@ -19,8 +19,12 @@ LOG_MODULE_REGISTER(fs_fat);
 
 static int lsdir(const char *path);
 
-void fs_test(void){
-	
+struct fs_file_t zfp;
+char file_name[] = "/SD:/YSECG001.dat";
+uint8_t max_file_order = 0;
+
+int fs_init(void){
+
 	static FATFS fat_fs;
 	/* mounting info */
 	static struct fs_mount_t mp = {
@@ -33,15 +37,16 @@ void fs_test(void){
 	*  in ffconf.h
 	*/
 	static const char *disk_mount_pt = "/SD:";
+	mp.mnt_point = disk_mount_pt;
 
 		/* raw disk i/o */
 	do {
 
 		const struct device *dev = device_get_binding(SDPWR_GPIO);
-		int ret = gpio_pin_configure(dev, PIN, GPIO_OUTPUT_ACTIVE | FLAGS);
-		if (ret < 0) {
+		if (gpio_pin_configure(dev, PIN, GPIO_OUTPUT_ACTIVE | FLAGS) < 0) 
+		{
 			LOG_ERR("SD power controller port config error.");
-			return;
+			break;
 		}
 
 		static const char *disk_pdrv = "SD";
@@ -71,54 +76,31 @@ void fs_test(void){
 		memory_size_mb = (uint64_t)block_count * block_size;
 		printk("Memory Size(MB) %u\n", (uint32_t)(memory_size_mb >> 20));
 
+		if (fs_mount(&mp) == FR_OK) {
+			printk("Disk mounted.\n");
+			lsdir(disk_mount_pt);
+		} else {
+			printk("Error mounting disk.\n");
+			break;
+		}
+
+		max_file_order += 1;
+		file_name[10] = max_file_order % 1000 / 100 + '0';
+		file_name[11] = max_file_order % 100 / 10 + '0';
+		file_name[12] = max_file_order % 10 + '0';
+		printk("New file name: %s", file_name);
+		fs_unlink(file_name);	// delete the file if it exist.
+		
+		fs_file_t_init(&zfp);
+		int result = fs_open(&zfp, file_name, FS_O_CREATE | FS_O_RDWR | FS_O_APPEND);
+		LOG_INF("Creat and open fileresult: %d\n", result);
+
+		k_msleep(10000);
+		return result; // fs init success.
+
 	} while (0);
 
-	mp.mnt_point = disk_mount_pt;
-
-	int res = fs_mount(&mp);
-
-	if (res == FR_OK) {
-		printk("Disk mounted.\n");
-		lsdir(disk_mount_pt);
-	} else {
-		printk("Error mounting disk.\n");
-	}
-
-	// while (1) {
-	// 	k_sleep(K_MSEC(1000));
-	// }
-
-	uint8_t str[500] = {0x33};
-
-	for (size_t i = 0; i < 500; i++)
-	{
-		str[i] = i;
-		
-	};
-
-
-	struct fs_file_t zfp;
-	fs_file_t_init(&zfp);
-
-	int result = fs_open(&zfp, "/SD:/test.dat", FS_O_CREATE | FS_O_RDWR);
-
-	if(result != FR_OK){
-		printk("Open file result: %d\n", result);
-	}
-	LOG_INF("Creat and open file");
-
-
-	result = fs_write(&zfp, &str, sizeof(str));
-	LOG_INF("Bytes write");
-	printk("Bytes writen: %d\n", result);
-
-	result = fs_sync(&zfp);
-	LOG_INF("File Sync result");
-	printk("File Sync result: %d\n", result);
-
-	result = fs_close(&zfp);
-	LOG_INF("File Close result");
-	printk("File Close result: %d\n", result);
+	return -1; // fs init fail.
 };
 
 static int lsdir(const char *path)
@@ -132,11 +114,11 @@ static int lsdir(const char *path)
 	/* Verify fs_opendir() */
 	res = fs_opendir(&dirp, path);
 	if (res) {
-		printk("Error opening dir %s [%d]\n", path, res);
+		LOG_ERR("Error opening dir %s [%d]", path, res);
 		return res;
 	}
 
-	printk("\nListing dir %s ...\n", path);
+	LOG_INF("\nListing dir %s ...", path);
 	for (;;) {
 		/* Verify fs_readdir() */
 		res = fs_readdir(&dirp, &entry);
@@ -149,8 +131,19 @@ static int lsdir(const char *path)
 		if (entry.type == FS_DIR_ENTRY_DIR) {
 			printk("[DIR ] %s\n", entry.name);
 		} else {
-			printk("[FILE] %s (size = %zu)\n",
+			printk("[FILE] %s (size = %zu)",
 				entry.name, entry.size);
+			
+			uint8_t file_order = 0;
+			for (size_t i = 5; i < sizeof(entry.name)-4; i++) // file name will be YSECGXXX.dat
+			{
+				if(entry.name[i] >= '0' && entry.name[i] <= '9'){
+					file_order = file_order * 10 + (entry.name[i] - '0'); // ASCII('0') => 48
+				}
+			}
+
+			max_file_order = file_order > max_file_order ? file_order : max_file_order;
+			LOG_INF("File order: %d, max file order %d", file_order, max_file_order);
 		}
 	}
 
@@ -158,4 +151,26 @@ static int lsdir(const char *path)
 	fs_closedir(&dirp);
 
 	return res;
-}
+};
+
+//save ECG data as mV unit
+void save_data(int16_t data[], uint8_t length, uint64_t counter)
+{
+	int result = fs_write(&zfp, &data, length);
+	LOG_INF("Bytes write: %d", result);
+
+	// sync to disk every second
+	if (counter % 250 == 0)
+	{
+		LOG_INF("File Sync begin ...");
+		int result = fs_sync(&zfp);
+		LOG_INF("File Sync result: %d", result);
+	};
+};
+
+
+void close_file(void)
+{
+	int result = fs_close(&zfp);
+	LOG_INF("File Close result: %d", result);
+};

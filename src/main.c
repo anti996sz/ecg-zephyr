@@ -14,8 +14,6 @@
 
 LOG_MODULE_REGISTER(main);
 
-/* 1000 msec = 1 sec */
-#define SLEEP_TIME_MS   1000
 #define ADS1298R DT_NODELABEL(ads1298r)
 #define ADS1294R DT_NODELABEL(ads1294r)
 
@@ -24,55 +22,42 @@ struct sensor_value value_1298r[9], value_1294r[5];
 const struct device *ads1294r = DEVICE_DT_GET(ADS1294R);
 const struct device *ads1298r = DEVICE_DT_GET(ADS1298R);
 
-int counter = 0;
-
-static const char *now_str(void)
-{
-	static char buf[16]; /* ...HH:MM:SS.MMM */
-	uint32_t now = k_uptime_get_32();
-	unsigned int ms = now % MSEC_PER_SEC;
-	unsigned int s;
-	unsigned int min;
-	unsigned int h;
-
-	now /= MSEC_PER_SEC;
-	s = now % 60U;
-	now /= 60U;
-	min = now % 60U;
-	now /= 60U;
-	h = now;
-
-	snprintf(buf, sizeof(buf), "%u:%02u:%02u.%03u",
-		 h, min, s, ms);
-	return buf;
-}
-
+int sd_ok = 0; // SD card init and open file status, 0 - success
 
 static void trigger_handler(const struct device *dev, struct sensor_trigger *trig)
 {
 	sensor_channel_get(ads1294r, SENSOR_CHAN_ALL, value_1294r);
 	sensor_channel_get(ads1298r, SENSOR_CHAN_ALL, value_1298r);
 
-	// printk("\n%s: %d volt(mV) ", now_str(), counter++);
+	int16_t buff[12];
+	static int counter = 1; // conunt the times this func called
 
-	// for (size_t i = 1; i < 9; i++)
-	// {
-	// 	printk("%d.%06d\t", value_1298r[i].val1, value_1298r[i].val2);
-	// }
+	for (size_t i = 1; i < 9; i++)
+	{
+		buff[i-1] = (int16_t)(sensor_value_to_double(&value_1298r[i])*1000);
+	}
 
-	// for (size_t i = 1; i < 5; i++)
-	// {
-	// 	printk("%d.%06d\t", value_1294r[i].val1, value_1294r[i].val2);
-	// }
-	
+	for (size_t i = 1; i < 5; i++)
+	{
+		buff[7+i] = (int16_t)(sensor_value_to_double(&value_1294r[i])*1000);
+	}
+
+	LOG_INF("%d volt(mV) : %d %d %d %d %d %d %d %d %d %d %d %d", counter++, 
+		buff[0], buff[1], buff[2], buff[3], buff[4], buff[5], buff[6], buff[7], 
+		buff[8], buff[9], buff[10], buff[11]);
+
+	// save ECG data as integer with µV unit
+	if(sd_ok == 0){
+		save_data(buff, sizeof(buff), counter);
+	};
 };
 
 
 
 void main(void)
 {
-	fs_test();
-
+	sd_ok = fs_init();
+	
 	if (!device_is_ready(ads1294r)) {
 		printk("Device %s is not ready\n", ads1294r->name);
 		return;
@@ -98,11 +83,11 @@ void main(void)
 		printk("Trigger set failed: %d\n", rc);
 	}
 
-	printk("Trigger set got %d\n", rc);
+	printk("Trigger set success.\n");
 
 	
-	while (1) {
-		// printk("Hello World! %s\n", CONFIG_BOARD);
-		k_msleep(SLEEP_TIME_MS);
-	}
+	// while (1) {
+	// 	// printk("Hello World! %s\n", CONFIG_BOARD);
+	// 	k_msleep(SLEEP_TIME_MS);
+	// }
 }

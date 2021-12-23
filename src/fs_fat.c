@@ -95,7 +95,7 @@ int fs_init(void){
 		int result = fs_open(&zfp, file_name, FS_O_CREATE | FS_O_RDWR | FS_O_APPEND);
 		LOG_INF("Creat and open fileresult: %d\n", result);
 
-		k_msleep(10000);
+		// k_msleep(10000);
 		return result; // fs init success.
 
 	} while (0);

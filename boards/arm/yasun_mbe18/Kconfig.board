@@ -4,3 +4,7 @@
 config BOARD_YASUN_MBE18
 	bool "yasun mbe18"
 	depends on SOC_NRF5340_CPUAPP_QKAA
+
+config BOARD_NRF5340DK_NRF5340_CPUNET
+	bool "nRF5340 DK NRF5340 Network MCU"
+	depends on SOC_NRF5340_CPUNET_QKAA

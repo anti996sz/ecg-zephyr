@@ -11,6 +11,7 @@
 #include <logging/log.h>
 
 #include "fs_fat.h"
+// #include "ble.h"
 
 LOG_MODULE_REGISTER(main);
 
@@ -22,72 +23,100 @@ struct sensor_value value_1298r[9], value_1294r[5];
 const struct device *ads1294r = DEVICE_DT_GET(ADS1294R);
 const struct device *ads1298r = DEVICE_DT_GET(ADS1298R);
 
-int sd_ok = 0; // SD card init and open file status, 0 - success
+// SD card init and open file status, 0 - success
+int sd_ok = 0, ble_ok = 0; 
 
 static void trigger_handler(const struct device *dev, struct sensor_trigger *trig)
 {
 	sensor_channel_get(ads1294r, SENSOR_CHAN_ALL, value_1294r);
 	sensor_channel_get(ads1298r, SENSOR_CHAN_ALL, value_1298r);
 
-	int16_t buff[12];
 	static int counter = 1; // conunt the times this func called
+	counter++;
 
+	// use decoded data
+	// int16_t buff[12];
+
+	// for (size_t i = 1; i < 9; i++)
+	// {
+	// 	buff[i-1] = (int16_t)(sensor_value_to_double(&value_1298r[i])*1000);
+	// }
+
+	// for (size_t i = 1; i < 5; i++)
+	// {
+	// 	buff[7+i] = (int16_t)(sensor_value_to_double(&value_1294r[i])*1000);
+	// }
+
+	// LOG_INF("%d volt(µV) : %d %d %d %d %d %d %d %d %d %d %d %d", counter, 
+	// 	buff[0], buff[1], buff[2], buff[3], buff[4], buff[5], buff[6], buff[7], 
+	// 	buff[8], buff[9], buff[10], buff[11]);
+
+
+	//use raw data
+	uint8_t buff[24];
 	for (size_t i = 1; i < 9; i++)
 	{
-		buff[i-1] = (int16_t)(sensor_value_to_double(&value_1298r[i])*1000);
+		buff[(i-1)*2] = (value_1298r[i].val1) >> 8;
+		buff[(i-1)*2 +1 ] = value_1298r[i].val1;
 	}
+
+	LOG_INF("%d: %02x %02x", counter, buff[0], buff[1]);
 
 	for (size_t i = 1; i < 5; i++)
 	{
-		buff[7+i] = (int16_t)(sensor_value_to_double(&value_1294r[i])*1000);
+		buff[16 + (i-1)*2] = value_1294r[i].val1 >> 8;
+		buff[16 + (i-1)*2 + 1] = value_1294r[i].val1;
 	}
 
-	LOG_INF("%d volt(mV) : %d %d %d %d %d %d %d %d %d %d %d %d", counter++, 
-		buff[0], buff[1], buff[2], buff[3], buff[4], buff[5], buff[6], buff[7], 
-		buff[8], buff[9], buff[10], buff[11]);
+	
+	// if(sd_ok == 0){
+	// 	save_data(buff, sizeof(buff), counter); // save ECG data as integer with µV unit when use decoded data
+	// };
 
-	// save ECG data as integer with µV unit
-	if(sd_ok == 0){
-		save_data(buff, sizeof(buff), counter);
-	};
+	if(ble_ok == 0) {
+		// ble_send( buff, 24 );
+	}
 };
 
 
 
 void main(void)
 {
+	LOG_INF("Hello World! %s\n", CONFIG_BOARD);
+
 	sd_ok = fs_init();
 	
 	if (!device_is_ready(ads1294r)) {
-		printk("Device %s is not ready\n", ads1294r->name);
+		LOG_INF("Device %s is not ready\n", ads1294r->name);
 		return;
 	}
 	if (!device_is_ready(ads1298r)) {
-		printk("Device %s is not ready\n", ads1298r->name);
+		LOG_INF("Device %s is not ready\n", ads1298r->name);
 		return;
 	}
 
-	printk("Hello World! %s\n", CONFIG_BOARD);
-
 	
-	// 设置中断触发器
 	static struct sensor_trigger drdy_trigger = {
 		.type = SENSOR_TRIG_DATA_READY,
 		.chan = SENSOR_CHAN_ALL,
 	};
 
-	// 数据准备好中断触发器只需要调用一次
+	// two ads129xr share the same interupter pin, so only set on one of them
 	int rc = sensor_trigger_set(ads1298r, &drdy_trigger, trigger_handler);
 
 	if (rc != 0) {
-		printk("Trigger set failed: %d\n", rc);
+		LOG_INF("Trigger set failed: %d\n", rc);
 	}
 
-	printk("Trigger set success.\n");
+	LOG_INF("Trigger set success.\n");
 
-	
+	// ble_ok = ble_init();
+	// LOG_INF("BLE init status: %d", ble_ok);
+
+	// k_cpu_idle();
+
 	// while (1) {
 	// 	// printk("Hello World! %s\n", CONFIG_BOARD);
-	// 	k_msleep(SLEEP_TIME_MS);
+	// 	k_msleep(1000);
 	// }
 }

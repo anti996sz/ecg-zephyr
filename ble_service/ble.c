@@ -24,12 +24,14 @@
 #include <bluetooth/uuid.h>
 #include <bluetooth/gatt.h>
 
+#include "ble.h"
 #include "ble_service.h"
 
 #define DEVICE_NAME             CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN         (sizeof(DEVICE_NAME) - 1)
 
 static K_SEM_DEFINE(ble_init_ok, 0, 1);
+bool my_ble_connected = false;
 
 static const struct bt_data ad[] = 
 {
@@ -186,6 +188,7 @@ int ble_init(void)
 	if (!err) 
 	{
 		printk("Bluetooth initialized\n");
+		my_ble_connected = true;
 	} else 
 	{
 		printk("BLE initialization did not complete in time\n");

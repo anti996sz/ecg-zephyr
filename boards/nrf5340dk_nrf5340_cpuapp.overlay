@@ -1,4 +1,4 @@
-&spi2 {
+&spi1 {
 
 	compatible = "nordic,nrf-spim";
 	status = "okay";
@@ -37,7 +37,7 @@
 	};
 };
 
-&spi1 {
+&spi2 {
 	status = "okay"; 
 	compatible = "nordic,nrf-spim";
 

@@ -93,7 +93,7 @@ int ads129xr_spi_transceive(const struct device *dev,
 
 		// if(isRREG || isReadData) // if read register then print the data received
 		// {
-		// 	printk("\nSPI received: 0x");
+		// 	printk("\nSPI received in ads129xr driver: 0x");
 		// 	for (int i = 0; i < data_length; i++)
 		// 	{
 		// 		printk("%02x ", data[i]);
@@ -156,9 +156,9 @@ static int ads129xr_init(const struct device *dev)
 	ads129xr_spi_transceive(dev, wreg_opcode, sizeof(wreg_opcode), wreg_data, sizeof(wreg_data));
 
 	// 测试读取前n个寄存器的结果
-	uint8_t rreg_opcode[2] = {RREG, 12};
-	uint8_t rreg_data[13];	
-	ads129xr_spi_transceive(dev, rreg_opcode, sizeof(rreg_opcode), rreg_data, sizeof(rreg_data));
+	// uint8_t rreg_opcode[2] = {RREG, 12};
+	// uint8_t rreg_data[13];	
+	// ads129xr_spi_transceive(dev, rreg_opcode, sizeof(rreg_opcode), rreg_data, sizeof(rreg_data));
 
 	// start conversion see ads129xr_trigger_set(), a unknow reason cause restart if set start conversion here.
 	// another reason is the second ads129xr not prsent when start conversion here.
@@ -177,10 +177,10 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 	// uint8_t opcode[0]; //= {RDATAC};
 	uint8_t opcode[1] = {RDATA};
 
-	// int32_t temp;
-	// const int32_t max_pos_input = 0x7FFFFF; // positive full-scale input
-	// const int32_t min_neg_input = 0xFFFFFF; // negitive minimum input
-	// double volt; // reale volt output
+	int32_t temp;
+	const int32_t max_pos_input = 0x7FFFFF; // positive full-scale input
+	const int32_t min_neg_input = 0xFFFFFF; // negitive minimum input
+	double volt; // reale volt output
 
 	if(strcmp(dev->name, "ADS1298R") == 0){
 		
@@ -190,17 +190,17 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 
 		for (size_t i = 1; i < 9; i++)
 		{
-			// temp = (data_9[i*3] << 16) | (data_9[i*3+1] << 8) | data_9[i*3+2];
-			// temp = (temp <= max_pos_input) ? temp : (temp - min_neg_input - 1);
-			// volt = temp * 2.4 / max_pos_input * 1000; // set unit to mV
+			temp = (data_9[i*3] << 16) | (data_9[i*3+1] << 8) | data_9[i*3+2];
+			temp = (temp <= max_pos_input) ? temp : (temp - min_neg_input - 1);
+			volt = temp * 2.4 / max_pos_input * 1000; // set unit to mV
 
-			// sensor_value_from_double(&val[i], volt);
+			sensor_value_from_double(&val[i], volt);
 
 			// use raw data
-			val[i].val1 = (data_9[i*3] << 8) | (data_9[i*3+1]);
+			// val[i].val1 = (data_9[i*3] << 8) | (data_9[i*3+1]);
 		}
 
-		LOG_INF("%02x", (data_9[3] << 8) | (data_9[4]) );
+		// LOG_INF("%02x", (data_9[3] << 8) | (data_9[4]) );
 		
 	} else {
 
@@ -210,16 +210,16 @@ static int ads129xr_channel_get(const struct device *dev, enum sensor_channel ch
 
 		for (size_t i = 1; i < 5; i++)
 		{
-			// temp = (data_5[i*3] << 16) | (data_5[i*3+1] << 8); // | data_5[i*3+2];
-			// // temp = 0xFFFFFF;
-			// // temp = 0x800000;
-			// temp = (temp <= max_pos_input) ? temp : (temp - min_neg_input - 1);
-			// volt = temp * 2.4 / max_pos_input * 1000; // set unit to mV
+			temp = (data_5[i*3] << 16) | (data_5[i*3+1] << 8); // | data_5[i*3+2];
+			// temp = 0xFFFFFF;
+			// temp = 0x800000;
+			temp = (temp <= max_pos_input) ? temp : (temp - min_neg_input - 1);
+			volt = temp * 2.4 / max_pos_input * 1000; // set unit to mV
 
-			// sensor_value_from_double(&val[i], volt);
+			sensor_value_from_double(&val[i], volt);
 
 			// use raw data
-			val[i].val1 = (data_5[i*3] << 8) | (data_5[i*3+1]);
+			// val[i].val1 = (data_5[i*3] << 8) | (data_5[i*3+1]);
 		}
 	}
 
